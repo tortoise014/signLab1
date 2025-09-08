@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - 课堂签到系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .logo {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .logo h1 {
+            font-size: 2rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .checkbox-group input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .links {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .links a:hover {
+            text-decoration: underline;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>📚 课堂签到系统</h1>
+            <p>请使用学号/工号登录</p>
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label for="userCode">学号/工号</label>
+                <input type="text" id="userCode" name="userCode" required placeholder="请输入学号或工号">
+            </div>
+            
+            <div class="form-group" id="passwordGroup" style="display: none;">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码">
+            </div>
+            
+            <div class="checkbox-group" id="rememberGroup" style="display: none;">
+                <input type="checkbox" id="rememberMe" name="rememberMe">
+                <label for="rememberMe">记住账号</label>
+            </div>
+            
+            <button type="submit" class="btn" id="submitBtn">下一步</button>
+            
+            <div class="loading" id="loading">
+                <p>正在验证用户信息...</p>
+            </div>
+        </form>
+        
+        <div class="links" id="links" style="display: none;">
+            <a href="#" id="forgotPassword">忘记密码？</a>
+        </div>
+    </div>
+
+    <script>
+        let isFirstLogin = false;
+        
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const userCode = document.getElementById('userCode').value;
+            const password = document.getElementById('password').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
+            
+            if (!userCode) {
+                showError('请输入学号或工号');
+                return;
+            }
+            
+            showLoading(true);
+            
+            try {
+                if (isFirstLogin) {
+                    // 首次登录或设置密码
+                    const response = await fetch(`/api/auth/check-user-status/${userCode}`);
+                    const result = await response.json();
+                    
+                    if (result.code === 200 && result.data) {
+                        const userStatus = result.data;
+                        
+                        if (!userStatus.exists) {
+                            showError('用户信息未录入，请联系管理员处理');
+                        } else if (!userStatus.passwordSet) {
+                            // 用户存在但未设置密码，跳转到设置密码页面
+                            window.location.href = `/set-password?userCode=${userCode}`;
+                        } else {
+                            showError('用户状态异常，请刷新页面重试');
+                        }
+                    } else {
+                        showError('查询用户状态失败，请重试');
+                    }
+                } else {
+                    // 常规登录
+                    if (!password) {
+                        showError('请输入密码');
+                        return;
+                    }
+                    
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            userCode: userCode,
+                            password: password,
+                            rememberMe: rememberMe
+                        })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.code === 200) {
+                        // 登录成功，根据角色跳转
+                        if (result.data.role === 'teacher') {
+                            window.location.href = `/teacher?teacherCode=${userCode}`;
+                        } else if (result.data.role === 'student') {
+                            window.location.href = `/student?studentCode=${userCode}`;
+                        } else if (result.data.role === 'admin') {
+                            window.location.href = '/admin';
+                        }
+                    } else {
+                        showError(result.message);
+                    }
+                }
+            } catch (error) {
+                showError('网络错误，请稍后重试');
+            } finally {
+                showLoading(false);
+            }
+        });
+        
+        // 检查用户输入
+        document.getElementById('userCode').addEventListener('blur', async function() {
+            const userCode = this.value;
+            if (!userCode) return;
+            
+            try {
+                const response = await fetch(`/api/auth/check-user-status/${userCode}`);
+                const result = await response.json();
+                
+                if (result.code === 200 && result.data) {
+                    const userStatus = result.data;
+                    
+                    if (!userStatus.exists) {
+                        // 用户不存在
+                        document.getElementById('passwordGroup').style.display = 'none';
+                        document.getElementById('rememberGroup').style.display = 'none';
+                        document.getElementById('links').style.display = 'none';
+                        document.getElementById('submitBtn').textContent = '下一步';
+                        isFirstLogin = true;
+                    } else if (!userStatus.passwordSet) {
+                        // 用户存在但未设置密码
+                        document.getElementById('passwordGroup').style.display = 'none';
+                        document.getElementById('rememberGroup').style.display = 'none';
+                        document.getElementById('links').style.display = 'none';
+                        document.getElementById('submitBtn').textContent = '设置密码';
+                        isFirstLogin = true;
+                    } else {
+                        // 用户存在且已设置密码
+                        document.getElementById('passwordGroup').style.display = 'block';
+                        document.getElementById('rememberGroup').style.display = 'flex';
+                        document.getElementById('links').style.display = 'block';
+                        document.getElementById('submitBtn').textContent = '登录';
+                        isFirstLogin = false;
+                    }
+                } else {
+                    // 查询失败
+                    document.getElementById('passwordGroup').style.display = 'none';
+                    document.getElementById('rememberGroup').style.display = 'none';
+                    document.getElementById('links').style.display = 'none';
+                    document.getElementById('submitBtn').textContent = '下一步';
+                    isFirstLogin = true;
+                }
+            } catch (error) {
+                console.error('检查用户失败:', error);
+                document.getElementById('passwordGroup').style.display = 'none';
+                document.getElementById('rememberGroup').style.display = 'none';
+                document.getElementById('links').style.display = 'none';
+                document.getElementById('submitBtn').textContent = '下一步';
+                isFirstLogin = true;
+            }
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (show) {
+                loading.classList.add('show');
+                submitBtn.disabled = true;
+            } else {
+                loading.classList.remove('show');
+                submitBtn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

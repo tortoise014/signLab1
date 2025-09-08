@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老师端 - 课堂签到系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .date-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .date-selector h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .date-input {
+            padding: 10px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            font-size: 1rem;
+            width: 200px;
+        }
+        
+        .date-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .courses-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .course-card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .course-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .course-info {
+            color: #666;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .course-time {
+            color: #e74c3c;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+        
+        .course-location {
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+        
+        .document-badge {
+            display: inline-flex;
+            align-items: center;
+            background: #3498db;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            margin-top: 10px;
+        }
+        
+        .course-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            text-align: center;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+        
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>👨‍🏫 老师端</h1>
+            <p th:text="'欢迎，' + ${teacherCode}">欢迎，T001</p>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="date-selector">
+            <h3>📅 选择日期</h3>
+            <input type="date" id="datePicker" class="date-input" th:value="${#dates.format(#dates.createNow(), 'yyyy-MM-dd')}">
+        </div>
+        
+        <div id="coursesContainer">
+            <div th:if="${courses != null and !courses.empty}">
+                <div class="courses-grid">
+                    <div th:each="course : ${courses}" class="course-card">
+                        <div class="course-title" th:text="${course.courseName}">数据结构与算法</div>
+                        <div class="course-info" th:text="'班级：' + ${course.className}">班级：计算机2021-1班</div>
+                        <div class="course-time" th:text="${course.timeSlot}">08:00-09:40</div>
+                        <div class="course-location" th:if="${course.location}" th:text="'地点：' + ${course.location}">地点：教学楼A101</div>
+                        
+                        <div th:if="${course.documentCount > 0}" class="document-badge">
+                            📄 <span th:text="${course.documentCount} + '份学生文档'">3份学生文档</span>
+                        </div>
+                        
+                        <div class="course-actions">
+                            <button class="btn btn-primary" 
+                                    th:disabled="${!course.canStartAttendance}"
+                                    th:onclick="'startAttendance(\'' + ${course.courseId} + '\')'"
+                                    th:text="${course.canStartAttendance ? '发起签到' : '未到时间'}">发起签到</button>
+                            
+                            <button class="btn btn-secondary" 
+                                    th:disabled="${!course.canViewDocuments}"
+                                    th:onclick="'viewDocuments(\'' + ${course.courseId} + '\')'"
+                                    th:text="${course.canViewDocuments ? '查看文档' : '暂无文档'}">查看文档</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div th:if="${courses == null or courses.empty}" class="empty-state">
+                <div class="empty-state-icon">📚</div>
+                <h3>今日无课程</h3>
+                <p>请选择其他日期查看课程安排</p>
+            </div>
+        </div>
+        
+        <div id="errorMessage" class="error" style="display: none;"></div>
+        <div id="loadingMessage" class="loading" style="display: none;">
+            <p>正在加载课程信息...</p>
+        </div>
+    </div>
+
+    <script>
+        const teacherCode = new URLSearchParams(window.location.search).get('teacherCode');
+        
+        // 日期选择器事件
+        document.getElementById('datePicker').addEventListener('change', function() {
+            loadCourses(this.value);
+        });
+        
+        // 加载课程
+        async function loadCourses(date) {
+            showLoading(true);
+            hideError();
+            
+            try {
+                const response = await fetch(`/api/teacher/courses?teacherCode=${teacherCode}&date=${date}`);
+                const result = await response.json();
+                
+                if (result.code === 200) {
+                    // 重新加载页面显示新数据
+                    window.location.href = `/teacher?teacherCode=${teacherCode}&date=${date}`;
+                } else {
+                    showError(result.message);
+                }
+            } catch (error) {
+                showError('网络错误，请稍后重试');
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        // 发起签到
+        function startAttendance(courseId) {
+            window.location.href = `/teacher/attendance?courseId=${courseId}`;
+        }
+        
+        // 查看文档
+        function viewDocuments(courseId) {
+            // 后续实现文档查看功能
+            alert('文档查看功能开发中...');
+        }
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function hideError() {
+            document.getElementById('errorMessage').style.display = 'none';
+        }
+        
+        function showLoading(show) {
+            const loading = document.getElementById('loadingMessage');
+            if (show) {
+                loading.style.display = 'block';
+            } else {
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

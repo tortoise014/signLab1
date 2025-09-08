@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: signLab1
+  
+  # 数据库配置
+  datasource:
+    url: jdbc:mysql://localhost:3306/signlab1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: Wr20050305
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  
+  # 文件上传配置
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# MyBatis Plus 配置
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+# 本地存储路径配置
+file:
+  upload:
+    path: D:/uploads/signlab/
+    photo:
+      path: ${file.upload.path}photos/
+    document:
+      path: ${file.upload.path}documents/
+
+# JWT配置
+jwt:
+  secret: signlab2024secretkeyforsignlab2024secretkey
+  expiration: 86400
+
+# 服务器配置
+server:
+  port: 8080

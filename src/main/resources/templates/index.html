@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课堂签到系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: white;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .features {
+            margin-top: 30px;
+            text-align: left;
+        }
+        
+        .feature {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            color: #666;
+        }
+        
+        .feature-icon {
+            width: 20px;
+            height: 20px;
+            background: #667eea;
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">📚</div>
+        <h1 class="logo">课堂签到系统</h1>
+        <p class="subtitle">数字化课堂管理，让教学更高效</p>
+        
+        <a href="/login" class="btn btn-primary">开始使用</a>
+        <a href="/admin" class="btn btn-secondary">管理员入口</a>
+        
+        <div class="features">
+            <div class="feature">
+                <div class="feature-icon">✓</div>
+                <span>二维码防伪造签到</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">✓</div>
+                <span>实时统计签到情况</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">✓</div>
+                <span>课堂记录拍照上传</span>
+            </div>
+            <div class="feature">
+                <div class="feature-icon">✓</div>
+                <span>自动生成Word文档</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
