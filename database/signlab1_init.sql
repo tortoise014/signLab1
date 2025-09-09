@@ -142,3 +142,4 @@ CREATE INDEX idx_photos_course_id ON class_photos(course_id);
 CREATE INDEX idx_photos_student_code ON class_photos(student_code);
 CREATE INDEX idx_documents_course_id ON student_documents(course_id);
 CREATE INDEX idx_documents_student_code ON student_documents(student_code);
+

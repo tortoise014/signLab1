@@ -114,3 +114,4 @@ INSERT INTO classes (class_code, class_name, verification_code, student_count) V
 INSERT INTO courses (course_id, course_name, teacher_code, class_code, location, course_date, time_slot, week_number) VALUES 
 ('KC24000001', '数据结构与算法', 'T001', '202101', '教学楼A101', CURDATE(), '08:00-09:40', 1),
 ('KC24000002', 'Java程序设计', 'T002', '202102', '教学楼B201', CURDATE(), '10:00-11:40', 1);
+

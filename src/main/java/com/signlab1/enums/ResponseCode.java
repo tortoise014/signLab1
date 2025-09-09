@@ -48,3 +48,4 @@ public enum ResponseCode {
         this.message = message;
     }
 }
+

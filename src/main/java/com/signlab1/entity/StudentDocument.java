@@ -76,3 +76,4 @@ public class StudentDocument {
     @TableField("is_deleted")
     private Integer isDeleted;
 }
+

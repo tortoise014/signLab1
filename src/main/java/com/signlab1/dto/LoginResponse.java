@@ -38,3 +38,4 @@ public class LoginResponse {
      */
     private Boolean isFirstLogin;
 }
+

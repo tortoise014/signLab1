@@ -82,3 +82,4 @@ public class ClassPhoto {
     @TableField("is_deleted")
     private Integer isDeleted;
 }
+

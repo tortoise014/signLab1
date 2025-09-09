@@ -46,3 +46,4 @@ public class StudentClassRelation {
     @TableField("is_deleted")
     private Integer isDeleted;
 }
+

@@ -33,3 +33,4 @@ public class AttendanceQrDto {
      */
     private Integer remainingTime;
 }
+

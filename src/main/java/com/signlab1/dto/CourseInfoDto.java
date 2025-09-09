@@ -53,3 +53,4 @@ public class CourseInfoDto {
      */
     private Boolean canViewDocuments;
 }
+

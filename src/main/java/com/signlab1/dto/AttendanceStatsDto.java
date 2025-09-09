@@ -28,3 +28,4 @@ public class AttendanceStatsDto {
      */
     private Double attendanceRate;
 }
+
