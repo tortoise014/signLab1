@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: signlab1-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: signlab1
+      MYSQL_USER: signlab1
+      MYSQL_PASSWORD: 123456
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./database/signlab1_init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - signlab1-network
+
+  # Redis缓存（可选）
+  redis:
+    image: redis:7-alpine
+    container_name: signlab1-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - signlab1-network
+
+  # 应用服务
+  app:
+    build: .
+    container_name: signlab1-app
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/signlab1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+      SPRING_DATASOURCE_USERNAME: signlab1
+      SPRING_DATASOURCE_PASSWORD: 123456
+      JWT_SECRET: signlab2024secretkeyforsignlab2024secretkey
+    volumes:
+      - ./uploads:/app/uploads
+      - ./exports:/app/exports
+    depends_on:
+      - mysql
+      - redis
+    networks:
+      - signlab1-network
+
+volumes:
+  mysql_data:
+  redis_data:
+
+networks:
+  signlab1-network:
+    driver: bridge
