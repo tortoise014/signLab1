@@ -30,10 +30,10 @@ public class Course {
     private String courseName;
     
     /**
-     * 授课老师工号
+     * 授课老师用户名
      */
-    @TableField("teacher_code")
-    private String teacherCode;
+    @TableField("teacher_username")
+    private String teacherUsername;
     
     /**
      * 上课班级编号

@@ -13,6 +13,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -125,6 +126,16 @@ public class GlobalExceptionHandler {
         log.error("运行时异常", e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(500, "系统运行异常: " + e.getMessage()));
+    }
+
+    /**
+     * 处理静态资源未找到异常
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResourceFoundException(NoResourceFoundException e) {
+        log.debug("静态资源未找到: {}", e.getResourcePath());
+        // 对于静态资源异常，直接返回404，不显示错误信息
+        return ResponseEntity.notFound().build();
     }
 
     /**

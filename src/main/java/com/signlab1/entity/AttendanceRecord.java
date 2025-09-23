@@ -24,10 +24,10 @@ public class AttendanceRecord {
     private String courseId;
     
     /**
-     * 学生学号
+     * 学生用户名
      */
-    @TableField("student_code")
-    private String studentCode;
+    @TableField("student_username")
+    private String studentUsername;
     
     /**
      * 签到时间

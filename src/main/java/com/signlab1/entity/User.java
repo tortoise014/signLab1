@@ -18,10 +18,10 @@ public class User {
     private Long id;
     
     /**
-     * 学号/工号 - 唯一标识
+     * 用户名 - 唯一标识
      */
-    @TableField("user_code")
-    private String userCode;
+    @TableField("username")
+    private String username;
     
     /**
      * 姓名

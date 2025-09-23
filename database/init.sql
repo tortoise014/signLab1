@@ -6,7 +6,7 @@ USE signlab;
 -- 用户表
 CREATE TABLE IF NOT EXISTS users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    user_code VARCHAR(50) NOT NULL UNIQUE COMMENT '学号/工号',
+    username VARCHAR(50) NOT NULL UNIQUE COMMENT '用户名',
     name VARCHAR(100) NOT NULL COMMENT '姓名',
     password VARCHAR(255) COMMENT '密码',
     role ENUM('student', 'teacher', 'admin') NOT NULL COMMENT '角色',
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS courses (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     course_id VARCHAR(20) NOT NULL UNIQUE COMMENT '课程ID',
     course_name VARCHAR(200) NOT NULL COMMENT '课程名称',
-    teacher_code VARCHAR(50) NOT NULL COMMENT '授课老师工号',
+    teacher_username VARCHAR(50) NOT NULL COMMENT '授课老师用户名',
     class_code VARCHAR(20) NOT NULL COMMENT '上课班级编号',
     location VARCHAR(100) COMMENT '上课地点',
     course_date DATE NOT NULL COMMENT '课程日期',
@@ -47,32 +47,32 @@ CREATE TABLE IF NOT EXISTS courses (
 -- 学生班级关联表
 CREATE TABLE IF NOT EXISTS student_class_relations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    student_code VARCHAR(50) NOT NULL COMMENT '学生学号',
+    student_username VARCHAR(50) NOT NULL COMMENT '学生用户名',
     class_code VARCHAR(20) NOT NULL COMMENT '班级编号',
     bind_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '绑定时间',
     is_deleted TINYINT DEFAULT 0 COMMENT '是否删除',
-    UNIQUE KEY uk_student_class (student_code, class_code)
+    UNIQUE KEY uk_student_class (student_username, class_code)
 );
 
 -- 签到记录表
 CREATE TABLE IF NOT EXISTS attendance_records (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     course_id VARCHAR(20) NOT NULL COMMENT '课程ID',
-    student_code VARCHAR(50) NOT NULL COMMENT '学生学号',
+    student_username VARCHAR(50) NOT NULL COMMENT '学生用户名',
     attendance_time DATETIME NOT NULL COMMENT '签到时间',
     attendance_status TINYINT DEFAULT 1 COMMENT '签到状态',
     ip_address VARCHAR(50) COMMENT '签到IP地址',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     is_deleted TINYINT DEFAULT 0 COMMENT '是否删除',
-    UNIQUE KEY uk_course_student (course_id, student_code)
+    UNIQUE KEY uk_course_student (course_id, student_username)
 );
 
 -- 课堂照片表
 CREATE TABLE IF NOT EXISTS class_photos (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     course_id VARCHAR(20) NOT NULL COMMENT '课程ID',
-    student_code VARCHAR(50) NOT NULL COMMENT '学生学号',
+    student_username VARCHAR(50) NOT NULL COMMENT '学生用户名',
     photo_name VARCHAR(200) NOT NULL COMMENT '照片文件名',
     photo_path VARCHAR(500) NOT NULL COMMENT '照片存储路径',
     remark TEXT COMMENT '照片备注',
@@ -87,7 +87,7 @@ CREATE TABLE IF NOT EXISTS class_photos (
 CREATE TABLE IF NOT EXISTS student_documents (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     course_id VARCHAR(20) NOT NULL COMMENT '课程ID',
-    student_code VARCHAR(50) NOT NULL COMMENT '学生学号',
+    student_username VARCHAR(50) NOT NULL COMMENT '学生用户名',
     document_name VARCHAR(200) NOT NULL COMMENT '文档文件名',
     document_path VARCHAR(500) NOT NULL COMMENT '文档存储路径',
     file_size BIGINT COMMENT '文档大小',
@@ -98,7 +98,7 @@ CREATE TABLE IF NOT EXISTS student_documents (
 );
 
 -- 插入测试数据
-INSERT INTO users (user_code, name, role, password_set) VALUES 
+INSERT INTO users (username, name, role, password_set) VALUES 
 ('T001', '张老师', 'teacher', 0),
 ('T002', '李老师', 'teacher', 0),
 ('S001', '张三', 'student', 0),
@@ -110,7 +110,7 @@ INSERT INTO classes (class_code, class_name, verification_code, student_count) V
 ('202102', '计算机2021-2班', '234567', 28),
 ('202201', '软件2022-1班', '345678', 32);
 
-INSERT INTO courses (course_id, course_name, teacher_code, class_code, location, course_date, time_slot, week_number) VALUES 
+INSERT INTO courses (course_id, course_name, teacher_username, class_code, location, course_date, time_slot, week_number) VALUES 
 ('KC24000001', '数据结构与算法', 'T001', '202101', '教学楼A101', CURDATE(), '08:00-09:40', 1),
 ('KC24000002', 'Java程序设计', 'T002', '202102', '教学楼B201', CURDATE(), '10:00-11:40', 1),
 ('KC24000003', '数据库原理', 'T001', '202201', '教学楼C301', CURDATE(), '14:00-15:40', 1);

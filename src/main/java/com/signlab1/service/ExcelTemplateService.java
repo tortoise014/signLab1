@@ -4,11 +4,16 @@ import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Excel模板生成服务
@@ -16,176 +21,6 @@ import java.time.format.DateTimeFormatter;
 @Service
 @RequiredArgsConstructor
 public class ExcelTemplateService {
-    
-    /**
-     * 生成用户数据导入模板
-     */
-    public byte[] generateUserTemplate() throws IOException {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("用户数据");
-        
-        // 创建标题行
-        Row headerRow = sheet.createRow(0);
-        String[] headers = {"学号/工号", "姓名", "角色"};
-        String[] roleOptions = {"student", "teacher", "admin"};
-        
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
-            
-            // 设置标题样式
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
-            headerStyle.setBorderTop(BorderStyle.THIN);
-            headerStyle.setBorderRight(BorderStyle.THIN);
-            headerStyle.setBorderLeft(BorderStyle.THIN);
-            cell.setCellStyle(headerStyle);
-        }
-        
-        // 添加示例数据
-        String[][] sampleData = {
-            {"T001", "张老师", "teacher"},
-            {"T002", "李老师", "teacher"},
-            {"S001", "张三", "student"},
-            {"S002", "李四", "student"},
-            {"S003", "王五", "student"},
-            {"admin", "管理员", "admin"}
-        };
-        
-        for (int i = 0; i < sampleData.length; i++) {
-            Row row = sheet.createRow(i + 1);
-            for (int j = 0; j < sampleData[i].length; j++) {
-                Cell cell = row.createCell(j);
-                cell.setCellValue(sampleData[i][j]);
-                
-                // 设置数据样式
-                CellStyle dataStyle = workbook.createCellStyle();
-                dataStyle.setBorderBottom(BorderStyle.THIN);
-                dataStyle.setBorderTop(BorderStyle.THIN);
-                dataStyle.setBorderRight(BorderStyle.THIN);
-                dataStyle.setBorderLeft(BorderStyle.THIN);
-                cell.setCellStyle(dataStyle);
-            }
-        }
-        
-        // 设置列宽
-        sheet.setColumnWidth(0, 15 * 256); // 学号/工号
-        sheet.setColumnWidth(1, 20 * 256); // 姓名
-        sheet.setColumnWidth(2, 15 * 256); // 角色
-        
-        // 添加说明
-        Row noteRow = sheet.createRow(sampleData.length + 3);
-        Cell noteCell = noteRow.createCell(0);
-        noteCell.setCellValue("说明：");
-        
-        Row noteRow2 = sheet.createRow(sampleData.length + 4);
-        Cell noteCell2 = noteRow2.createCell(0);
-        noteCell2.setCellValue("1. 学号/工号：唯一标识，不能重复");
-        
-        Row noteRow3 = sheet.createRow(sampleData.length + 5);
-        Cell noteCell3 = noteRow3.createCell(0);
-        noteCell3.setCellValue("2. 角色：student(学生)、teacher(老师)、admin(管理员)");
-        
-        Row noteRow4 = sheet.createRow(sampleData.length + 6);
-        Cell noteCell4 = noteRow4.createCell(0);
-        noteCell4.setCellValue("3. 导入后用户初始密码为空，首次登录需设置密码");
-        
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        workbook.write(outputStream);
-        workbook.close();
-        
-        return outputStream.toByteArray();
-    }
-    
-    /**
-     * 生成班级数据导入模板
-     */
-    public byte[] generateClassTemplate() throws IOException {
-        Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("班级数据");
-        
-        // 创建标题行
-        Row headerRow = sheet.createRow(0);
-        String[] headers = {"班级编号", "班级名称", "班级人数"};
-        
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
-            
-            // 设置标题样式
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerFont.setColor(IndexedColors.WHITE.getIndex());
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.BLUE.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            headerStyle.setBorderBottom(BorderStyle.THIN);
-            headerStyle.setBorderTop(BorderStyle.THIN);
-            headerStyle.setBorderRight(BorderStyle.THIN);
-            headerStyle.setBorderLeft(BorderStyle.THIN);
-            cell.setCellStyle(headerStyle);
-        }
-        
-        // 添加示例数据
-        String[][] sampleData = {
-            {"202101", "计算机2021-1班", "30"},
-            {"202102", "计算机2021-2班", "28"},
-            {"202201", "软件2022-1班", "32"},
-            {"202202", "软件2022-2班", "29"},
-            {"202301", "网络2023-1班", "31"}
-        };
-        
-        for (int i = 0; i < sampleData.length; i++) {
-            Row row = sheet.createRow(i + 1);
-            for (int j = 0; j < sampleData[i].length; j++) {
-                Cell cell = row.createCell(j);
-                cell.setCellValue(sampleData[i][j]);
-                
-                // 设置数据样式
-                CellStyle dataStyle = workbook.createCellStyle();
-                dataStyle.setBorderBottom(BorderStyle.THIN);
-                dataStyle.setBorderTop(BorderStyle.THIN);
-                dataStyle.setBorderRight(BorderStyle.THIN);
-                dataStyle.setBorderLeft(BorderStyle.THIN);
-                cell.setCellStyle(dataStyle);
-            }
-        }
-        
-        // 设置列宽
-        sheet.setColumnWidth(0, 15 * 256); // 班级编号
-        sheet.setColumnWidth(1, 25 * 256); // 班级名称
-        sheet.setColumnWidth(2, 15 * 256); // 班级人数
-        
-        // 添加说明
-        Row noteRow = sheet.createRow(sampleData.length + 3);
-        Cell noteCell = noteRow.createCell(0);
-        noteCell.setCellValue("说明：");
-        
-        Row noteRow2 = sheet.createRow(sampleData.length + 4);
-        Cell noteCell2 = noteRow2.createCell(0);
-        noteCell2.setCellValue("1. 班级编号：6位数字，唯一标识");
-        
-        Row noteRow3 = sheet.createRow(sampleData.length + 5);
-        Cell noteCell3 = noteRow3.createCell(0);
-        noteCell3.setCellValue("2. 班级人数：用于签到统计");
-        
-        Row noteRow4 = sheet.createRow(sampleData.length + 6);
-        Cell noteCell4 = noteRow4.createCell(0);
-        noteCell4.setCellValue("3. 系统会自动生成6位验证码用于学生绑定");
-        
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        workbook.write(outputStream);
-        workbook.close();
-        
-        return outputStream.toByteArray();
-    }
     
     /**
      * 生成课程数据导入模板
@@ -217,14 +52,14 @@ public class ExcelTemplateService {
             cell.setCellStyle(headerStyle);
         }
         
-        // 添加示例数据
+        // 添加示例数据 - 基于您的实际课程格式
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         String[][] sampleData = {
-            {"数据结构与算法", "T001", "202101", "教学楼A101", today, "08:00-09:40", "1"},
-            {"Java程序设计", "T002", "202102", "教学楼B201", today, "10:00-11:40", "1"},
-            {"数据库原理", "T001", "202201", "教学楼C301", today, "14:00-15:40", "1"},
-            {"操作系统", "T003", "202202", "教学楼D401", today, "16:00-17:40", "1"},
-            {"计算机网络", "T004", "202301", "教学楼E501", today, "19:00-20:40", "1"}
+            {"工程实践B", "00005642", "工程实践B18", "实验4-211", today, "08:00-11:40", "5"},
+            {"工程实践B", "00005642", "工程实践B18", "实验3-404", today, "14:00-17:40", "8"},
+            {"数据结构与算法", "T001", "计算机2021-1班", "教学楼A101", today, "08:00-09:40", "1"},
+            {"Java程序设计", "T002", "计算机2021-2班", "教学楼B201", today, "10:00-11:40", "1"},
+            {"数据库原理", "T001", "软件2022-1班", "教学楼C301", today, "14:00-15:40", "1"}
         };
         
         for (int i = 0; i < sampleData.length; i++) {
@@ -259,11 +94,11 @@ public class ExcelTemplateService {
         
         Row noteRow2 = sheet.createRow(sampleData.length + 4);
         Cell noteCell2 = noteRow2.createCell(0);
-        noteCell2.setCellValue("1. 授课老师工号：必须是已导入的老师工号");
+        noteCell2.setCellValue("1. 授课老师工号：支持00005642格式，必须是已导入的老师工号");
         
         Row noteRow3 = sheet.createRow(sampleData.length + 5);
         Cell noteCell3 = noteRow3.createCell(0);
-        noteCell3.setCellValue("2. 上课班级：必须是已导入的班级编号");
+        noteCell3.setCellValue("2. 上课班级：使用班级名称，如'工程实践B18'、'计算机2021-1班'");
         
         Row noteRow4 = sheet.createRow(sampleData.length + 6);
         Cell noteCell4 = noteRow4.createCell(0);
@@ -271,17 +106,426 @@ public class ExcelTemplateService {
         
         Row noteRow5 = sheet.createRow(sampleData.length + 7);
         Cell noteCell5 = noteRow5.createCell(0);
-        noteCell5.setCellValue("4. 上课时间段：格式为HH:mm-HH:mm，如08:00-09:40");
+        noteCell5.setCellValue("4. 上课时间段：格式为HH:mm-HH:mm，如08:00-11:40");
         
         Row noteRow6 = sheet.createRow(sampleData.length + 8);
         Cell noteCell6 = noteRow6.createCell(0);
-        noteCell6.setCellValue("5. 系统会自动生成课程ID（格式：KC+年份后2位+6位自增数）");
+        noteCell6.setCellValue("5. 课程周次：对应学生课表中的周次，如5周、8周");
+        
+        Row noteRow7 = sheet.createRow(sampleData.length + 9);
+        Cell noteCell7 = noteRow7.createCell(0);
+        noteCell7.setCellValue("6. 系统会自动生成课程ID（格式：KC+年份后2位+6位自增数）");
         
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
         workbook.close();
         
         return outputStream.toByteArray();
+    }
+    
+    /**
+     * 生成学生数据导入模板
+     */
+    public byte[] generateStudentTemplate() throws IOException {
+        Workbook workbook = new XSSFWorkbook();
+        Sheet sheet = workbook.createSheet("学生数据");
+        
+        // 创建标题行 - 根据您的实际Excel文件格式
+        Row headerRow = sheet.createRow(0);
+        String[] headers = {"班级名称", "学号", "姓名", "院系", "专业", "任课教师", "上课时间地点"};
+        
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            
+            // 设置标题样式
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerFont.setColor(IndexedColors.WHITE.getIndex());
+            headerStyle.setFont(headerFont);
+            headerStyle.setFillForegroundColor(IndexedColors.BLUE.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            headerStyle.setBorderBottom(BorderStyle.THIN);
+            headerStyle.setBorderTop(BorderStyle.THIN);
+            headerStyle.setBorderRight(BorderStyle.THIN);
+            headerStyle.setBorderLeft(BorderStyle.THIN);
+            cell.setCellStyle(headerStyle);
+        }
+        
+        // 添加示例数据 - 基于您的实际数据格式
+        String[][] sampleData = {
+            {"工程实践B18", "2112504510", "张三", "自动化学院", "085801 电气工程", "陈灵敏,李水峰", "5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404"},
+            {"工程实践B18", "2112504511", "李四", "自动化学院", "085801 电气工程", "陈灵敏,李水峰", "5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404"},
+            {"工程实践B18", "2112504512", "王五", "自动化学院", "085801 电气工程", "陈灵敏,李水峰", "5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404"}
+        };
+        
+        for (int i = 0; i < sampleData.length; i++) {
+            Row row = sheet.createRow(i + 1);
+            for (int j = 0; j < sampleData[i].length; j++) {
+                Cell cell = row.createCell(j);
+                cell.setCellValue(sampleData[i][j]);
+                
+                // 设置数据样式
+                CellStyle dataStyle = workbook.createCellStyle();
+                dataStyle.setBorderBottom(BorderStyle.THIN);
+                dataStyle.setBorderTop(BorderStyle.THIN);
+                dataStyle.setBorderRight(BorderStyle.THIN);
+                dataStyle.setBorderLeft(BorderStyle.THIN);
+                cell.setCellStyle(dataStyle);
+            }
+        }
+        
+        // 设置列宽
+        sheet.setColumnWidth(0, 15 * 256); // 班级名称
+        sheet.setColumnWidth(1, 15 * 256); // 学号
+        sheet.setColumnWidth(2, 10 * 256); // 姓名
+        sheet.setColumnWidth(3, 15 * 256); // 院系
+        sheet.setColumnWidth(4, 20 * 256); // 专业
+        sheet.setColumnWidth(5, 25 * 256); // 任课教师
+        sheet.setColumnWidth(6, 80 * 256); // 上课时间地点
+        
+        // 添加说明
+        Row noteRow = sheet.createRow(sampleData.length + 3);
+        Cell noteCell = noteRow.createCell(0);
+        noteCell.setCellValue("说明：");
+        
+        Row noteRow2 = sheet.createRow(sampleData.length + 4);
+        Cell noteCell2 = noteRow2.createCell(0);
+        noteCell2.setCellValue("1. 学号：10位数字，如2112504510");
+        
+        Row noteRow3 = sheet.createRow(sampleData.length + 5);
+        Cell noteCell3 = noteRow3.createCell(0);
+        noteCell3.setCellValue("2. 任课教师：多个老师用逗号分隔");
+        
+        Row noteRow4 = sheet.createRow(sampleData.length + 6);
+        Cell noteCell4 = noteRow4.createCell(0);
+        noteCell4.setCellValue("3. 上课时间地点：系统会自动解析并生成课程");
+        
+        Row noteRow5 = sheet.createRow(sampleData.length + 7);
+        Cell noteCell5 = noteRow5.createCell(0);
+        noteCell5.setCellValue("4. 格式示例：5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404");
+        
+        Row noteRow6 = sheet.createRow(sampleData.length + 8);
+        Cell noteCell6 = noteRow6.createCell(0);
+        noteCell6.setCellValue("5. 导入学生数据时会自动生成对应的课程安排");
+        
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        workbook.write(outputStream);
+        workbook.close();
+        
+        return outputStream.toByteArray();
+    }
+    
+    /**
+     * 从学生数据生成课程模板
+     * @param studentFile 学生数据文件
+     * @param teacherCode 老师工号
+     * @return 课程模板Excel文件
+     */
+    public byte[] generateCourseTemplateFromStudentData(MultipartFile studentFile, String teacherCode) {
+        try {
+            InputStream inputStream = studentFile.getInputStream();
+            Workbook workbook = new XSSFWorkbook(inputStream);
+            Sheet sheet = workbook.getSheetAt(0);
+            
+            List<CourseTemplateData> courseDataList = new ArrayList<>();
+            Set<String> processedSchedules = new HashSet<>();
+            
+            // 读取学生数据
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+                
+                try {
+                    // 适配实际的学生模板格式
+                    String className = getCellValue(row.getCell(0)); // A列：班级名称
+                    String studentCode = getCellValue(row.getCell(1)); // B列：学号
+                    String studentName = getCellValue(row.getCell(2)); // C列：姓名
+                    String department = getCellValue(row.getCell(3)); // D列：院系
+                    String major = getCellValue(row.getCell(4)); // E列：专业
+                    String teachers = getCellValue(row.getCell(5)); // F列：任课教师
+                    String schedule = getCellValue(row.getCell(6)); // G列：上课时间地点
+                    
+                    System.out.println("处理学生数据: " + studentCode + " " + studentName + " " + className);
+                    System.out.println("课表信息: " + schedule);
+                    
+                    if (studentCode.isEmpty() || className.isEmpty() || schedule.isEmpty()) {
+                        System.out.println("跳过空数据行: " + i);
+                        continue;
+                    }
+                    
+                    // 解析课表信息
+                    if (!schedule.isEmpty() && !processedSchedules.contains(schedule)) {
+                        try {
+                            // 从班级名称推断课程名称
+                            String courseName = className.contains("工程实践") ? "工程实践B" : className;
+                            
+                            // 解析课表，生成课程数据
+                            List<CourseTemplateData> parsedCourses = parseScheduleToCourseTemplate(
+                                schedule, courseName, teacherCode, className
+                            );
+                            
+                            courseDataList.addAll(parsedCourses);
+                            processedSchedules.add(schedule);
+                            
+                        } catch (Exception e) {
+                            System.err.println("解析课表失败: " + e.getMessage());
+                        }
+                    }
+                    
+                } catch (Exception e) {
+                    System.err.println("处理学生数据失败: " + e.getMessage());
+                }
+            }
+            
+            workbook.close();
+            
+            // 生成课程模板Excel
+            return generateCourseTemplateFromData(courseDataList);
+            
+        } catch (IOException e) {
+            throw new RuntimeException("处理学生数据失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 解析课表信息，生成课程模板数据
+     */
+    private List<CourseTemplateData> parseScheduleToCourseTemplate(String scheduleText, String courseName, String teacherCode, String className) {
+        List<CourseTemplateData> courseDataList = new ArrayList<>();
+        
+        if (scheduleText == null || scheduleText.trim().isEmpty()) {
+            return courseDataList;
+        }
+        
+        // 按分号分割不同的上课时间段
+        String[] scheduleParts = scheduleText.split(";");
+        
+        for (String part : scheduleParts) {
+            part = part.trim();
+            if (part.isEmpty()) continue;
+            
+            CourseTemplateData courseData = parseSchedulePartToTemplate(part, courseName, teacherCode, className);
+            if (courseData != null) {
+                courseDataList.add(courseData);
+            }
+        }
+        
+        return courseDataList;
+    }
+    
+    /**
+     * 解析单个上课时间段，生成课程模板数据
+     */
+    private CourseTemplateData parseSchedulePartToTemplate(String schedulePart, String courseName, String teacherCode, String className) {
+        try {
+            // 正则表达式匹配
+            Pattern pattern = Pattern.compile("(\\d+)周\\s*星期([一二三四五六日])\\[(\\d+)-(\\d+)节\\](.*)");
+            Matcher matcher = pattern.matcher(schedulePart);
+            
+            if (!matcher.find()) {
+                return null;
+            }
+            
+            int weekNumber = Integer.parseInt(matcher.group(1));
+            String dayOfWeek = matcher.group(2);
+            int startLesson = Integer.parseInt(matcher.group(3));
+            int endLesson = Integer.parseInt(matcher.group(4));
+            String location = matcher.group(5).trim();
+            
+            // 转换星期
+            String dayInEnglish = convertChineseDayToEnglish(dayOfWeek);
+            if (dayInEnglish == null) {
+                return null;
+            }
+            
+            // 计算具体日期
+            LocalDate courseDate = calculateCourseDate(weekNumber, dayInEnglish);
+            if (courseDate == null) {
+                return null;
+            }
+            
+            // 转换节次为时间段
+            String timeSlot = convertLessonToTimeSlot(startLesson, endLesson);
+            
+            // 创建课程模板数据
+            CourseTemplateData courseData = new CourseTemplateData();
+            courseData.setCourseName(courseName);
+            courseData.setTeacherCode(teacherCode);
+            courseData.setClassName(className);
+            courseData.setLocation(location);
+            courseData.setCourseDate(courseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            courseData.setTimeSlot(timeSlot);
+            courseData.setWeekNumber(weekNumber);
+            
+            return courseData;
+            
+        } catch (Exception e) {
+            System.err.println("解析上课时间失败: " + schedulePart + ", 错误: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * 从课程数据生成课程模板Excel
+     */
+    private byte[] generateCourseTemplateFromData(List<CourseTemplateData> courseDataList) {
+        try {
+            Workbook workbook = new XSSFWorkbook();
+            Sheet sheet = workbook.createSheet("课程数据导入模板");
+            
+            // 创建标题行
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"课程名称", "授课老师工号", "上课班级", "上课地点", "课程日期", "上课时间段", "课程周次"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+            }
+            
+            // 添加课程数据
+            for (int i = 0; i < courseDataList.size(); i++) {
+                CourseTemplateData courseData = courseDataList.get(i);
+                Row row = sheet.createRow(i + 1);
+                
+                row.createCell(0).setCellValue(courseData.getCourseName());
+                row.createCell(1).setCellValue(courseData.getTeacherCode());
+                row.createCell(2).setCellValue(courseData.getClassName());
+                row.createCell(3).setCellValue(courseData.getLocation());
+                row.createCell(4).setCellValue(courseData.getCourseDate());
+                row.createCell(5).setCellValue(courseData.getTimeSlot());
+                row.createCell(6).setCellValue(courseData.getWeekNumber());
+            }
+            
+            // 自动调整列宽
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+            
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            workbook.write(outputStream);
+            workbook.close();
+            
+            byte[] result = outputStream.toByteArray();
+            System.out.println("生成的Excel文件大小: " + result.length + " bytes");
+            System.out.println("课程数据条数: " + courseDataList.size());
+            
+            return result;
+            
+        } catch (IOException e) {
+            throw new RuntimeException("生成课程模板失败：" + e.getMessage());
+        }
+    }
+    
+    /**
+     * 课程模板数据类
+     */
+    private static class CourseTemplateData {
+        private String courseName;
+        private String teacherCode;
+        private String className;
+        private String location;
+        private String courseDate;
+        private String timeSlot;
+        private int weekNumber;
+        
+        // Getters and Setters
+        public String getCourseName() { return courseName; }
+        public void setCourseName(String courseName) { this.courseName = courseName; }
+        
+        public String getTeacherCode() { return teacherCode; }
+        public void setTeacherCode(String teacherCode) { this.teacherCode = teacherCode; }
+        
+        public String getClassName() { return className; }
+        public void setClassName(String className) { this.className = className; }
+        
+        public String getLocation() { return location; }
+        public void setLocation(String location) { this.location = location; }
+        
+        public String getCourseDate() { return courseDate; }
+        public void setCourseDate(String courseDate) { this.courseDate = courseDate; }
+        
+        public String getTimeSlot() { return timeSlot; }
+        public void setTimeSlot(String timeSlot) { this.timeSlot = timeSlot; }
+        
+        public int getWeekNumber() { return weekNumber; }
+        public void setWeekNumber(int weekNumber) { this.weekNumber = weekNumber; }
+    }
+    
+    /**
+     * 中文星期转换为英文
+     */
+    private String convertChineseDayToEnglish(String chineseDay) {
+        Map<String, String> dayMap = new HashMap<>();
+        dayMap.put("一", "MONDAY");
+        dayMap.put("二", "TUESDAY");
+        dayMap.put("三", "WEDNESDAY");
+        dayMap.put("四", "THURSDAY");
+        dayMap.put("五", "FRIDAY");
+        dayMap.put("六", "SATURDAY");
+        dayMap.put("日", "SUNDAY");
+        
+        return dayMap.get(chineseDay);
+    }
+    
+    /**
+     * 计算课程具体日期
+     */
+    private LocalDate calculateCourseDate(int weekNumber, String dayOfWeek) {
+        // 使用2025年9月1日作为学期开始日期
+        LocalDate semesterStart = LocalDate.of(2025, 9, 1);
+        
+        // 计算目标周次相对于基准日期的偏移
+        int weekOffset = weekNumber - 1; // 第1周从基准日期开始
+        
+        // 计算目标日期
+        LocalDate targetDate = semesterStart.plusWeeks(weekOffset);
+        
+        // 计算目标星期几的日期
+        java.time.DayOfWeek targetDayOfWeek = java.time.DayOfWeek.valueOf(dayOfWeek);
+        
+        // 找到目标星期几
+        while (targetDate.getDayOfWeek() != targetDayOfWeek) {
+            targetDate = targetDate.plusDays(1);
+        }
+        
+        return targetDate;
+    }
+    
+    /**
+     * 节次转换为时间段
+     */
+    private String convertLessonToTimeSlot(int startLesson, int endLesson) {
+        // 根据实际作息时间表转换
+        Map<Integer, String> lessonTimeMap = new HashMap<>();
+        lessonTimeMap.put(1, "08:30");
+        lessonTimeMap.put(2, "10:05");
+        lessonTimeMap.put(3, "10:25");
+        lessonTimeMap.put(4, "12:00");
+        lessonTimeMap.put(5, "13:50");
+        lessonTimeMap.put(6, "14:40");
+        lessonTimeMap.put(7, "16:15");
+        lessonTimeMap.put(8, "16:30");
+        lessonTimeMap.put(9, "18:05");
+        
+        String startTime = lessonTimeMap.get(startLesson);
+        String endTime = lessonTimeMap.get(endLesson);
+        
+        if (startTime != null && endTime != null) {
+            return startTime + "-" + endTime;
+        }
+        
+        return "08:30-10:05"; // 默认时间段
+    }
+    
+    /**
+     * 获取单元格值
+     */
+    private String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        // 使用DataFormatter获取单元格的显示值，这样可以保持原始格式
+        DataFormatter dataFormatter = new DataFormatter();
+        return dataFormatter.formatCellValue(cell).trim();
     }
 }
 

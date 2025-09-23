@@ -16,7 +16,7 @@ public class LoginResponse {
     /**
      * 学号/工号
      */
-    private String userCode;
+    private String username;
     
     /**
      * 姓名

@@ -3,10 +3,10 @@ package com.signlab1.dto;
 import lombok.Data;
 
 /**
- * 用户登录请求DTO
+ * 设置密码请求DTO
  */
 @Data
-public class LoginRequest {
+public class SetPasswordRequest {
     
     /**
      * 学号/工号
@@ -14,13 +14,13 @@ public class LoginRequest {
     private String username;
     
     /**
-     * 密码
+     * 新密码
      */
     private String password;
     
     /**
-     * 是否记住账号
+     * 确认密码
      */
-    private Boolean rememberMe;
+    private String confirmPassword;
 }
 

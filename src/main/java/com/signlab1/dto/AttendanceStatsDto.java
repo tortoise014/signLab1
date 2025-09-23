@@ -9,23 +9,12 @@ import lombok.Data;
 public class AttendanceStatsDto {
     
     /**
-     * 应到人数
+     * 总签到次数
      */
-    private Integer totalCount;
+    private Integer totalAttendance;
     
     /**
-     * 已签到人数
-     */
-    private Integer attendedCount;
-    
-    /**
-     * 未签到人数
-     */
-    private Integer absentCount;
-    
-    /**
-     * 签到率
+     * 签到率（百分比）
      */
     private Double attendanceRate;
 }
-
