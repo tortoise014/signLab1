@@ -4,9 +4,11 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.signlab1.entity.Class;
 import com.signlab1.entity.Course;
 import com.signlab1.entity.User;
+import com.signlab1.entity.StudentClassRelation;
 import com.signlab1.mapper.ClassMapper;
 import com.signlab1.mapper.CourseMapper;
 import com.signlab1.mapper.UserMapper;
+import com.signlab1.mapper.StudentClassRelationMapper;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -17,8 +19,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -32,6 +36,7 @@ public class AdminImportService {
     private final UserMapper userMapper;
     private final ClassMapper classMapper;
     private final CourseMapper courseMapper;
+    private final StudentClassRelationMapper studentClassRelationMapper;
     private final ScheduleParserService scheduleParserService;
     
     // 用于格式化单元格值，保持原始格式
@@ -207,7 +212,7 @@ public class AdminImportService {
     }
     
     /**
-     * 老师导入学生数据（自动生成课程）
+     * 老师导入学生数据（自动生成课程并创建学生课程关联）
      */
     public String importStudentsForTeacher(MultipartFile file, String teacherCode) {
         try {
@@ -215,12 +220,18 @@ public class AdminImportService {
             Workbook workbook = new XSSFWorkbook(inputStream);
             Sheet sheet = workbook.getSheetAt(0);
             
-            List<User> students = new ArrayList<>();
-            List<Course> courses = new ArrayList<>();
-            Set<String> processedSchedules = new HashSet<>(); // 避免重复解析相同的课表
-            int successCount = 0;
+            List<User> newStudents = new ArrayList<>();
+            List<StudentClassRelation> studentCourseRelations = new ArrayList<>();
+            List<Course> courseSchedules = new ArrayList<>();
+            Map<String, Class> processedCourses = new HashMap<>();
+            Set<String> processedSchedules = new HashSet<>();
+            
+            int newStudentCount = 0;
+            int existingStudentCount = 0;
+            int bindSuccessCount = 0;
+            int bindFailCount = 0;
             int errorCount = 0;
-            String courseName = "工程实践B"; // 默认课程名称
+            int courseCount = 0;
             
             // 跳过标题行，从第二行开始读取
             for (int i = 1; i <= sheet.getLastRowNum(); i++) {
@@ -228,16 +239,15 @@ public class AdminImportService {
                 if (row == null) continue;
                 
                 try {
-                    // 根据新的Excel格式读取数据
-                    String className = getCellValue(row.getCell(0));      // 班级名称
-                    String studentCode = getCellValue(row.getCell(1));    // 学号
-                    String studentName = getCellValue(row.getCell(2));    // 姓名
-                    String department = getCellValue(row.getCell(3));     // 院系
-                    String major = getCellValue(row.getCell(4));          // 专业
-                    String teachers = getCellValue(row.getCell(5));       // 任课教师
-                    String schedule = getCellValue(row.getCell(6));       // 上课时间地点
+                    String courseName = getCellValue(row.getCell(0));
+                    String studentCode = getCellValue(row.getCell(1));
+                    String studentName = getCellValue(row.getCell(2));
+                    String department = getCellValue(row.getCell(3));
+                    String major = getCellValue(row.getCell(4));
+                    String teachers = getCellValue(row.getCell(5));
+                    String schedule = getCellValue(row.getCell(6));
                     
-                    if (studentCode.isEmpty() || studentName.isEmpty() || className.isEmpty()) {
+                    if (studentCode.isEmpty() || studentName.isEmpty() || courseName.isEmpty()) {
                         errorCount++;
                         continue;
                     }
@@ -247,72 +257,155 @@ public class AdminImportService {
                     userQuery.eq("username", studentCode);
                     User existingUser = userMapper.selectOne(userQuery);
                     
+                    // 处理课程信息
+                    Class course = processedCourses.get(courseName);
+                    if (course == null) {
+                        QueryWrapper<Class> courseQuery = new QueryWrapper<>();
+                        courseQuery.eq("class_name", courseName);
+                        course = classMapper.selectOne(courseQuery);
+                        
+                        if (course == null) {
+                            course = new Class();
+                            course.setClassName(courseName);
+                            course.setClassCode(generateCourseCode());
+                            course.setVerificationCode(generateVerificationCode());
+                            course.setStudentCount(0);
+                            course.setCreateTime(LocalDateTime.now());
+                            course.setUpdateTime(LocalDateTime.now());
+                            
+                            classMapper.insert(course);
+                            courseCount++;
+                            System.out.println("创建新课程: " + courseName + ", 课程编号: " + course.getClassCode());
+                        }
+                        
+                        processedCourses.put(courseName, course);
+                    }
+                    
+                    // 检查学生课程关联是否已存在
+                    QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+                    relationQuery.eq("student_username", studentCode)
+                               .eq("class_code", course.getClassCode());
+                    StudentClassRelation existingRelation = studentClassRelationMapper.selectOne(relationQuery);
+                    
                     if (existingUser == null) {
+                        // 学生不存在，创建新学生
                         User student = new User();
                         student.setUsername(studentCode);
                         student.setName(studentName);
-                        student.setPassword(studentCode.length() >= 4 ? studentCode.substring(studentCode.length() - 4) : "1234"); // 学号后四位作为密码
+                        student.setPassword(studentCode.length() >= 4 ? 
+                            studentCode.substring(studentCode.length() - 4) : "1234");
                         student.setRole("student");
                         student.setPasswordSet(1);
                         student.setCreateTime(LocalDateTime.now());
                         student.setUpdateTime(LocalDateTime.now());
                         
-                        students.add(student);
-                        successCount++;
+                        newStudents.add(student);
+                        newStudentCount++;
                         
-                        // 解析课表信息（避免重复解析相同的课表）
-                        if (!schedule.isEmpty() && !processedSchedules.contains(schedule)) {
-                            try {
-                                // 从班级名称推断课程名称
-                                String actualCourseName = className.contains("工程实践") ? "工程实践B" : className;
-                                
-                                List<Course> parsedCourses = scheduleParserService.parseSchedule(
-                                    schedule, actualCourseName, teacherCode, className
-                                );
-                                
-                                // 检查课程是否已存在，避免重复插入
-                                for (Course course : parsedCourses) {
-                                    QueryWrapper<Course> courseQuery = new QueryWrapper<>();
-                                    courseQuery.eq("course_id", course.getCourseId());
-                                    Course existingCourse = courseMapper.selectOne(courseQuery);
-                                    
-                                    if (existingCourse == null) {
-                                        courses.add(course);
-                                    }
-                                }
-                                
-                                processedSchedules.add(schedule);
-                            } catch (Exception e) {
-                                System.err.println("解析课表失败: " + e.getMessage());
-                            }
+                        // 创建学生课程关联
+                        if (existingRelation == null) {
+                            StudentClassRelation relation = new StudentClassRelation();
+                            relation.setStudentUsername(studentCode);
+                            relation.setClassCode(course.getClassCode());
+                            relation.setBindTime(LocalDateTime.now());
+                            studentCourseRelations.add(relation);
+                            bindSuccessCount++;
+                        } else {
+                            bindFailCount++;
                         }
+                        
                     } else {
-                        errorCount++;
+                        // 学生已存在
+                        existingStudentCount++;
+                        
+                        if (existingRelation == null) {
+                            // 创建学生课程关联
+                            StudentClassRelation relation = new StudentClassRelation();
+                            relation.setStudentUsername(studentCode);
+                            relation.setClassCode(course.getClassCode());
+                            relation.setBindTime(LocalDateTime.now());
+                            studentCourseRelations.add(relation);
+                            bindSuccessCount++;
+                        } else {
+                            bindFailCount++;
+                        }
+                    }
+                    
+                    // 解析课表信息
+                    if (!schedule.isEmpty() && !processedSchedules.contains(schedule)) {
+                        try {
+                            List<Course> parsedSchedules = scheduleParserService.parseSchedule(
+                                schedule, courseName, teacherCode, course.getClassCode()
+                            );
+                            
+                            for (Course courseSchedule : parsedSchedules) {
+                                QueryWrapper<Course> scheduleQuery = new QueryWrapper<>();
+                                scheduleQuery.eq("course_id", courseSchedule.getCourseId());
+                                Course existingSchedule = courseMapper.selectOne(scheduleQuery);
+                                
+                                if (existingSchedule == null) {
+                                    courseSchedules.add(courseSchedule);
+                                }
+                            }
+                            
+                            processedSchedules.add(schedule);
+                        } catch (Exception e) {
+                            System.err.println("解析课表失败: " + e.getMessage());
+                        }
                     }
                     
                 } catch (Exception e) {
                     errorCount++;
+                    System.err.println("处理第" + i + "行数据失败: " + e.getMessage());
                 }
             }
             
-            // 批量插入学生
-            if (!students.isEmpty()) {
-                for (User student : students) {
+            // 批量插入新学生
+            if (!newStudents.isEmpty()) {
+                for (User student : newStudents) {
                     userMapper.insert(student);
                 }
             }
             
-            // 批量插入课程
-            if (!courses.isEmpty()) {
-                for (Course course : courses) {
-                    courseMapper.insert(course);
+            // 批量插入课程时间安排
+            if (!courseSchedules.isEmpty()) {
+                for (Course courseSchedule : courseSchedules) {
+                    courseMapper.insert(courseSchedule);
                 }
             }
             
+            // 批量插入学生课程关联
+            if (!studentCourseRelations.isEmpty()) {
+                for (StudentClassRelation relation : studentCourseRelations) {
+                    studentClassRelationMapper.insert(relation);
+                }
+            }
+            
+            // 更新课程选课人数统计
+            for (Class course : processedCourses.values()) {
+                QueryWrapper<StudentClassRelation> countQuery = new QueryWrapper<>();
+                countQuery.eq("class_code", course.getClassCode());
+                long studentCount = studentClassRelationMapper.selectCount(countQuery);
+                
+                course.setStudentCount((int) studentCount);
+                classMapper.updateById(course);
+            }
+            
             workbook.close();
-            String result = String.format("导入完成！学生：%d条，自动生成课程：%d条，失败：%d条", 
-                successCount, courses.size(), errorCount);
-            return result;
+            
+            // 构建详细的返回结果
+            StringBuilder result = new StringBuilder();
+            result.append("导入完成！\n");
+            result.append("📊 统计信息：\n");
+            result.append("• 新创建学生：").append(newStudentCount).append("人\n");
+            result.append("• 已存在学生：").append(existingStudentCount).append("人\n");
+            result.append("• 成功选课：").append(bindSuccessCount).append("人\n");
+            result.append("• 选课失败（已选课）：").append(bindFailCount).append("人\n");
+            result.append("• 创建课程：").append(courseCount).append("门\n");
+            result.append("• 生成课程安排：").append(courseSchedules.size()).append("条\n");
+            result.append("• 其他错误：").append(errorCount).append("条");
+            
+            return result.toString();
             
         } catch (IOException e) {
             throw new RuntimeException("文件读取失败：" + e.getMessage());
@@ -394,6 +487,20 @@ public class AdminImportService {
         Random random = new Random();
         int randomNum = random.nextInt(1000000);
         return String.format("KC%s%06d", year, randomNum);
+    }
+    
+    /**
+     * 生成课程编号
+     */
+    private String generateCourseCode() {
+        long timestamp = System.currentTimeMillis();
+        String timestampStr = String.valueOf(timestamp);
+        String last6Digits = timestampStr.substring(timestampStr.length() - 6);
+        
+        Random random = new Random();
+        int randomNum = random.nextInt(100);
+        
+        return "KC" + last6Digits + String.format("%02d", randomNum);
     }
     
     /**

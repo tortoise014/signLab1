@@ -3,12 +3,17 @@ spring:
     name: signLab1
   
   # 数据库配置
+#  datasource:
+#    url: jdbc:mysql://localhost:3306/signlab1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+#    username: root
+#    password: Wr20050305
+#    driver-class-name: com.mysql.cj.jdbc.Driver
+
   datasource:
-    url: jdbc:mysql://localhost:3306/signlab1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://43.139.186.204:3306/signlab1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: Wr20050305
+    password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
-  
   # 文件上传配置
   servlet:
     multipart:
@@ -42,4 +47,5 @@ jwt:
 
 # 服务器配置
 server:
-  port: 8080
+  port: 8085
+  address: 0.0.0.0  # 允许外部访问，默认是127.0.0.1只能本机访问

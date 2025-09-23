@@ -33,6 +33,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/test/**").permitAll() // 测试接口无需认证
+                .requestMatchers("/api/health/**").permitAll() // 健康检查接口无需认证
                 .requestMatchers("/api/student/bind-class").permitAll() // 学生绑定班级无需认证
                 .anyRequest().authenticated()
             )
