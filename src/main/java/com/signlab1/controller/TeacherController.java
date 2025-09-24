@@ -230,6 +230,20 @@ public class TeacherController {
         try {
             byte[] templateBytes = excelTemplateService.generateStudentTemplate();
             
+            if (templateBytes == null || templateBytes.length == 0) {
+                // 返回错误信息，但保持文件下载格式
+                String errorMsg = "模板生成失败，请稍后重试";
+                byte[] errorBytes = errorMsg.getBytes(StandardCharsets.UTF_8);
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.TEXT_PLAIN);
+                headers.set("Content-Disposition", "attachment; filename=\"error.txt\"");
+                
+                return ResponseEntity.badRequest()
+                        .headers(headers)
+                        .body(errorBytes);
+            }
+            
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
             
@@ -241,7 +255,19 @@ public class TeacherController {
                     .headers(headers)
                     .body(templateBytes);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            e.printStackTrace(); // 打印错误日志
+            
+            // 返回错误信息文件
+            String errorMsg = "下载学生模板失败: " + e.getMessage();
+            byte[] errorBytes = errorMsg.getBytes(StandardCharsets.UTF_8);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            headers.set("Content-Disposition", "attachment; filename=\"error.txt\"");
+            
+            return ResponseEntity.internalServerError()
+                    .headers(headers)
+                    .body(errorBytes);
         }
     }
     
@@ -252,6 +278,20 @@ public class TeacherController {
     public ResponseEntity<byte[]> downloadCourseTemplate() {
         try {
             byte[] templateBytes = excelTemplateService.generateCourseTemplate();
+            
+            if (templateBytes == null || templateBytes.length == 0) {
+                // 返回错误信息，但保持文件下载格式
+                String errorMsg = "模板生成失败，请稍后重试";
+                byte[] errorBytes = errorMsg.getBytes(StandardCharsets.UTF_8);
+                
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.TEXT_PLAIN);
+                headers.set("Content-Disposition", "attachment; filename=\"error.txt\"");
+                
+                return ResponseEntity.badRequest()
+                        .headers(headers)
+                        .body(errorBytes);
+            }
             
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -264,7 +304,19 @@ public class TeacherController {
                     .headers(headers)
                     .body(templateBytes);
         } catch (Exception e) {
-            return ResponseEntity.internalServerError().build();
+            e.printStackTrace(); // 打印错误日志
+            
+            // 返回错误信息文件
+            String errorMsg = "下载课程模板失败: " + e.getMessage();
+            byte[] errorBytes = errorMsg.getBytes(StandardCharsets.UTF_8);
+            
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.TEXT_PLAIN);
+            headers.set("Content-Disposition", "attachment; filename=\"error.txt\"");
+            
+            return ResponseEntity.internalServerError()
+                    .headers(headers)
+                    .body(errorBytes);
         }
     }
     
