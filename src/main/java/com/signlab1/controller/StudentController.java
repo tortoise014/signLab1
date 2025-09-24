@@ -41,8 +41,12 @@ public class StudentController {
      * 获取签到记录
      */
     @GetMapping("/attendance/records")
-    public ApiResponse<List<AttendanceRecordDto>> getAttendanceRecords(@RequestParam String studentCode) {
+    public ApiResponse<List<AttendanceRecordDto>> getAttendanceRecords() {
         try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String studentCode = authentication.getName();
+            
             List<AttendanceRecordDto> records = studentService.getAttendanceRecords(studentCode);
             return ApiResponse.success(records, "获取签到记录成功");
         } catch (Exception e) {
@@ -54,8 +58,12 @@ public class StudentController {
      * 获取签到统计
      */
     @GetMapping("/attendance/stats")
-    public ApiResponse<AttendanceStatsDto> getAttendanceStats(@RequestParam String studentCode) {
+    public ApiResponse<AttendanceStatsDto> getAttendanceStats() {
         try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String studentCode = authentication.getName();
+            
             AttendanceStatsDto stats = studentService.getAttendanceStats(studentCode);
             return ApiResponse.success(stats, "获取签到统计成功");
         } catch (Exception e) {
@@ -69,7 +77,18 @@ public class StudentController {
     @PostMapping("/bind-class")
     public ApiResponse<Void> bindClass(@RequestBody BindClassRequest request) {
         try {
-            studentService.bindClass(request.getStudentCode(), request.getVerificationCode());
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ApiResponse.error(401, "未登录，请先登录");
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ApiResponse.error(401, "用户信息获取失败，请重新登录");
+            }
+            
+            studentService.bindClass(studentCode, request.getVerificationCode());
             return ApiResponse.success(null, "绑定班级成功");
         } catch (Exception e) {
             return ApiResponse.error(500, "绑定班级失败: " + e.getMessage());
@@ -80,8 +99,19 @@ public class StudentController {
      * 获取已绑定的班级列表
      */
     @GetMapping("/classes")
-    public ApiResponse<List<ClassInfoDto>> getStudentClasses(@RequestParam String studentCode) {
+    public ApiResponse<List<ClassInfoDto>> getStudentClasses() {
         try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ApiResponse.error(401, "未登录，请先登录");
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ApiResponse.error(401, "用户信息获取失败，请重新登录");
+            }
+            
             List<ClassInfoDto> classes = studentService.getStudentClasses(studentCode);
             return ApiResponse.success(classes, "获取班级列表成功");
         } catch (Exception e) {
