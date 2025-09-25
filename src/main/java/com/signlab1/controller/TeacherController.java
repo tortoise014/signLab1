@@ -366,6 +366,19 @@ public class TeacherController {
     }
     
     /**
+     * 获取详细签到统计
+     */
+    @GetMapping("/attendance/detailed-stats/{courseId}")
+    public ApiResponse<DetailedAttendanceStatsDto> getDetailedAttendanceStats(@PathVariable String courseId) {
+        try {
+            DetailedAttendanceStatsDto stats = teacherService.getDetailedAttendanceStats(courseId);
+            return ApiResponse.success(stats, "获取详细签到统计成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取详细签到统计失败: " + e.getMessage());
+        }
+    }
+    
+    /**
      * 更新学生信息
      */
     @PutMapping("/students/update")

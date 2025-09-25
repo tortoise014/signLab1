@@ -4,11 +4,14 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.signlab1.dto.*;
 import com.signlab1.entity.AttendanceRecord;
 import com.signlab1.entity.Class;
+import com.signlab1.entity.ClassPhoto;
 import com.signlab1.entity.Course;
 import com.signlab1.entity.StudentClassRelation;
 import com.signlab1.entity.User;
 import com.signlab1.mapper.*;
+import com.signlab1.util.FileUploadUtil;
 import com.signlab1.util.QrCodeUtil;
+import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +32,9 @@ public class StudentService {
     private final UserMapper userMapper;
     private final StudentClassRelationMapper studentClassRelationMapper;
     private final ClassMapper classMapper;
+    private final ClassPhotoMapper classPhotoMapper;
     private final QrCodeUtil qrCodeUtil;
+    private final FileUploadUtil fileUploadUtil;
     
     /**
      * 扫码签到
@@ -40,7 +45,7 @@ public class StudentService {
             Map<String, String> qrContent = qrCodeUtil.parseAttendanceQrContent(qrData);
             String courseId = qrContent.get("courseId");
             String teacherCode = qrContent.get("teacherCode");
-            String classCode = qrContent.get("classCode");
+            // String classCode = qrContent.get("classCode"); // 不再需要班级验证
             String timestampStr = qrContent.get("timestamp");
             
             // 2. 验证二维码时效性（10秒有效期）
@@ -64,16 +69,7 @@ public class StudentService {
                 throw new RuntimeException("课程不存在");
             }
             
-            // 4. 验证学生是否属于该班级
-            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
-            relationQuery.eq("student_username", studentCode)
-                        .eq("class_code", classCode);
-            StudentClassRelation relation = studentClassRelationMapper.selectOne(relationQuery);
-            if (relation == null) {
-                throw new RuntimeException("您不属于该课程班级，无法签到");
-            }
-            
-            // 5. 检查是否已签到
+            // 4. 检查是否已签到
             QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
             attendanceQuery.eq("course_id", courseId)
                           .eq("student_username", studentCode);
@@ -82,7 +78,7 @@ public class StudentService {
                 throw new RuntimeException("您已经签到过了");
             }
             
-            // 6. 创建签到记录
+            // 5. 创建签到记录
             AttendanceRecord record = new AttendanceRecord();
             record.setCourseId(courseId);
             record.setStudentUsername(studentCode);
@@ -168,17 +164,9 @@ public class StudentService {
             AttendanceStatsDto stats = new AttendanceStatsDto();
             stats.setTotalAttendance(records.size());
             
-            // 计算签到率（这里简化处理，假设学生应该参与所有已绑定的课程）
-            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
-            relationQuery.eq("student_username", studentCode);
-            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
-            
-            if (relations.size() > 0) {
-                double rate = (double) records.size() / relations.size() * 100;
-                stats.setAttendanceRate(Math.round(rate * 100.0) / 100.0);
-            } else {
-                stats.setAttendanceRate(0.0);
-            }
+            // 简化处理：不再计算签到率，因为学生可以签到任何课程
+            // 签到率设为100%，表示已签到的课程都是有效的
+            stats.setAttendanceRate(100.0);
             
             return stats;
             
@@ -280,5 +268,176 @@ public class StudentService {
         } catch (Exception e) {
             throw new RuntimeException("获取班级列表失败: " + e.getMessage());
         }
+    }
+    
+    /**
+     * 上传课堂照片
+     */
+    public PhotoUploadResponse uploadClassPhoto(String studentCode, String courseId, MultipartFile file, String remark) {
+        try {
+            // 1. 验证课程是否存在
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("course_id", courseId);
+            Course course = courseMapper.selectOne(courseQuery);
+            if (course == null) {
+                throw new RuntimeException("课程不存在");
+            }
+            
+            // 2. 上传文件（移除班级验证，学生可以为任何课程上传照片）
+            FileUploadUtil.FileUploadResult uploadResult = fileUploadUtil.uploadClassPhoto(file, courseId, studentCode, remark);
+            
+            // 3. 保存照片记录到数据库
+            ClassPhoto classPhoto = new ClassPhoto();
+            classPhoto.setCourseId(courseId);
+            classPhoto.setStudentUsername(studentCode);
+            classPhoto.setPhotoName(uploadResult.getFileName());
+            classPhoto.setPhotoPath(uploadResult.getFilePath());
+            classPhoto.setRemark(remark);
+            classPhoto.setFileSize(uploadResult.getFileSize());
+            classPhoto.setUploadTime(uploadResult.getUploadTime());
+            
+            classPhotoMapper.insert(classPhoto);
+            
+            // 4. 构建返回结果
+            PhotoUploadResponse response = new PhotoUploadResponse();
+            response.setPhotoId(classPhoto.getId());
+            response.setPhotoName(uploadResult.getFileName());
+            response.setPhotoUrl("/api/student/photo/" + classPhoto.getId()); // 照片访问URL
+            response.setFileSize(uploadResult.getFileSize());
+            response.setUploadTime(uploadResult.getUploadTime());
+            response.setRemark(remark);
+            
+            return response;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("照片上传失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取学生的课堂照片列表
+     */
+    public List<ClassPhotoDto> getStudentPhotos(String studentCode) {
+        try {
+            QueryWrapper<ClassPhoto> query = new QueryWrapper<>();
+            query.eq("student_username", studentCode)
+                .orderByDesc("upload_time");
+            
+            List<ClassPhoto> photos = classPhotoMapper.selectList(query);
+            
+            return photos.stream().map(photo -> {
+                ClassPhotoDto dto = new ClassPhotoDto();
+                dto.setId(photo.getId());
+                dto.setCourseId(photo.getCourseId());
+                dto.setStudentUsername(photo.getStudentUsername());
+                dto.setPhotoName(photo.getPhotoName());
+                dto.setPhotoUrl("/api/student/photo/" + photo.getId());
+                dto.setRemark(photo.getRemark());
+                dto.setFileSize(photo.getFileSize());
+                dto.setUploadTime(photo.getUploadTime());
+                
+                // 获取课程信息
+                QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+                courseQuery.eq("course_id", photo.getCourseId());
+                Course course = courseMapper.selectOne(courseQuery);
+                if (course != null) {
+                    dto.setCourseName(course.getCourseName());
+                }
+                
+                // 获取学生信息
+                QueryWrapper<User> userQuery = new QueryWrapper<>();
+                userQuery.eq("username", photo.getStudentUsername());
+                User student = userMapper.selectOne(userQuery);
+                if (student != null) {
+                    dto.setStudentName(student.getName());
+                }
+                
+                return dto;
+            }).collect(Collectors.toList());
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取照片列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据课程ID获取学生的课堂照片
+     */
+    public List<ClassPhotoDto> getStudentPhotosByCourse(String studentCode, String courseId) {
+        try {
+            QueryWrapper<ClassPhoto> query = new QueryWrapper<>();
+            query.eq("student_username", studentCode)
+                .eq("course_id", courseId)
+                .orderByDesc("upload_time");
+            
+            List<ClassPhoto> photos = classPhotoMapper.selectList(query);
+            
+            return photos.stream().map(photo -> {
+                ClassPhotoDto dto = new ClassPhotoDto();
+                dto.setId(photo.getId());
+                dto.setCourseId(photo.getCourseId());
+                dto.setStudentUsername(photo.getStudentUsername());
+                dto.setPhotoName(photo.getPhotoName());
+                dto.setPhotoUrl("/api/student/photo/" + photo.getId());
+                dto.setRemark(photo.getRemark());
+                dto.setFileSize(photo.getFileSize());
+                dto.setUploadTime(photo.getUploadTime());
+                
+                // 获取课程信息
+                QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+                courseQuery.eq("course_id", photo.getCourseId());
+                Course course = courseMapper.selectOne(courseQuery);
+                if (course != null) {
+                    dto.setCourseName(course.getCourseName());
+                }
+                
+                // 获取学生信息
+                QueryWrapper<User> userQuery = new QueryWrapper<>();
+                userQuery.eq("username", photo.getStudentUsername());
+                User student = userMapper.selectOne(userQuery);
+                if (student != null) {
+                    dto.setStudentName(student.getName());
+                }
+                
+                return dto;
+            }).collect(Collectors.toList());
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取课程照片失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 删除课堂照片
+     */
+    public void deleteClassPhoto(String studentCode, Long photoId) {
+        try {
+            // 1. 查询照片记录
+            ClassPhoto photo = classPhotoMapper.selectById(photoId);
+            if (photo == null) {
+                throw new RuntimeException("照片不存在");
+            }
+            
+            // 2. 验证权限（只能删除自己的照片）
+            if (!studentCode.equals(photo.getStudentUsername())) {
+                throw new RuntimeException("您只能删除自己的照片");
+            }
+            
+            // 3. 删除物理文件
+            fileUploadUtil.deleteFile(photo.getPhotoPath());
+            
+            // 4. 删除数据库记录
+            classPhotoMapper.deleteById(photoId);
+            
+        } catch (Exception e) {
+            throw new RuntimeException("删除照片失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 根据ID获取照片信息
+     */
+    public ClassPhoto getClassPhotoById(Long photoId) {
+        return classPhotoMapper.selectById(photoId);
     }
 }

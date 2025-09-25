@@ -18,6 +18,7 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -344,16 +345,7 @@ public class TeacherService {
                 throw new RuntimeException("课程不存在");
             }
             
-            // 2. 验证学生是否属于该课程班级
-            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
-            relationQuery.eq("student_username", studentCode)
-                        .eq("class_code", course.getClassCode());
-            StudentClassRelation relation = studentClassRelationMapper.selectOne(relationQuery);
-            if (relation == null) {
-                throw new RuntimeException("学生不属于该课程班级");
-            }
-            
-            // 3. 查找现有签到记录
+            // 2. 查找现有签到记录
             QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
             attendanceQuery.eq("course_id", courseId)
                           .eq("student_username", studentCode);
@@ -402,37 +394,48 @@ public class TeacherService {
                 return new ArrayList<>();
             }
             
-            // 2. 获取所有课程涉及的班级
-            List<String> classCodes = courses.stream()
-                    .map(Course::getClassCode)
-                    .distinct()
+            // 2. 获取这些课程的所有签到学生
+            List<String> courseIds = courses.stream()
+                    .map(Course::getCourseId)
                     .collect(Collectors.toList());
             
-            // 3. 获取这些班级的所有学生
-            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
-            relationQuery.in("class_code", classCodes);
-            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+            attendanceQuery.in("course_id", courseIds);
+            List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
             
-            // 4. 转换为DTO
-            return relations.stream().map(relation -> {
-                StudentInfoDto dto = new StudentInfoDto();
-                dto.setStudentCode(relation.getStudentUsername());
-                dto.setClassCode(relation.getClassCode());
-                
-                // 获取学生信息
-                QueryWrapper<User> userQuery = new QueryWrapper<>();
-                userQuery.eq("username", relation.getStudentUsername());
-                User user = userMapper.selectOne(userQuery);
-                dto.setStudentName(user != null ? user.getName() : "未知学生");
-                
-                // 获取班级信息
-                QueryWrapper<Class> classQuery = new QueryWrapper<>();
-                classQuery.eq("class_code", relation.getClassCode());
-                Class clazz = classMapper.selectOne(classQuery);
-                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
-                
-                return dto;
-            }).distinct().collect(Collectors.toList());
+            // 3. 转换为DTO
+            return attendanceRecords.stream()
+                    .map(record -> {
+                        StudentInfoDto dto = new StudentInfoDto();
+                        dto.setStudentCode(record.getStudentUsername());
+                        
+                        // 获取学生信息
+                        QueryWrapper<User> userQuery = new QueryWrapper<>();
+                        userQuery.eq("username", record.getStudentUsername());
+                        User user = userMapper.selectOne(userQuery);
+                        dto.setStudentName(user != null ? user.getName() : "未知学生");
+                        
+                        // 获取课程信息以确定班级
+                        QueryWrapper<Course> courseInfoQuery = new QueryWrapper<>();
+                        courseInfoQuery.eq("course_id", record.getCourseId());
+                        Course course = courseMapper.selectOne(courseInfoQuery);
+                        if (course != null) {
+                            dto.setClassCode(course.getClassCode());
+                            
+                            // 获取班级信息
+                            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                            classQuery.eq("class_code", course.getClassCode());
+                            Class clazz = classMapper.selectOne(classQuery);
+                            dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                        } else {
+                            dto.setClassCode("未知");
+                            dto.setClassName("未知班级");
+                        }
+                        
+                        return dto;
+                    })
+                    .distinct()
+                    .collect(Collectors.toList());
             
         } catch (Exception e) {
             throw new RuntimeException("获取学生列表失败: " + e.getMessage());
@@ -444,7 +447,7 @@ public class TeacherService {
      */
     public void updateStudent(UpdateStudentRequest request) {
         try {
-            // 1. 更新学生基本信息
+            // 更新学生基本信息
             QueryWrapper<User> userQuery = new QueryWrapper<>();
             userQuery.eq("username", request.getStudentCode());
             User user = userMapper.selectOne(userQuery);
@@ -456,25 +459,210 @@ public class TeacherService {
             user.setName(request.getStudentName());
             userMapper.updateById(user);
             
-            // 2. 更新班级关系
-            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
-            relationQuery.eq("student_username", request.getStudentCode());
-            StudentClassRelation relation = studentClassRelationMapper.selectOne(relationQuery);
-            
-            if (relation != null) {
-                relation.setClassCode(request.getClassCode());
-                studentClassRelationMapper.updateById(relation);
-            } else {
-                // 如果不存在关系，创建新的关系
-                relation = new StudentClassRelation();
-                relation.setStudentUsername(request.getStudentCode());
-                relation.setClassCode(request.getClassCode());
-                relation.setBindTime(LocalDateTime.now());
-                studentClassRelationMapper.insert(relation);
-            }
+            // 注意：不再强制更新班级关系，因为学生可以签到任何课程
+            // 班级绑定现在是可选的功能
             
         } catch (Exception e) {
             throw new RuntimeException("更新学生信息失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取详细签到统计
+     */
+    public DetailedAttendanceStatsDto getDetailedAttendanceStats(String courseId) {
+        try {
+            // 1. 获取课程信息
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("course_id", courseId);
+            Course course = courseMapper.selectOne(courseQuery);
+            if (course == null) {
+                throw new RuntimeException("课程不存在");
+            }
+            
+            // 2. 获取班级信息
+            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+            classQuery.eq("class_code", course.getClassCode());
+            Class clazz = classMapper.selectOne(classQuery);
+            
+            // 3. 获取老师信息
+            QueryWrapper<User> teacherQuery = new QueryWrapper<>();
+            teacherQuery.eq("username", course.getTeacherUsername());
+            User teacher = userMapper.selectOne(teacherQuery);
+            
+            // 4. 获取本班级所有学生（基于绑定关系）
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.eq("class_code", course.getClassCode());
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            // 5. 获取该课程的所有签到记录
+            QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+            attendanceQuery.eq("course_id", courseId);
+            List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
+            
+            // 6. 构建返回结果
+            DetailedAttendanceStatsDto result = new DetailedAttendanceStatsDto();
+            
+            // 设置课程信息
+            DetailedAttendanceStatsDto.CourseInfo courseInfo = new DetailedAttendanceStatsDto.CourseInfo();
+            courseInfo.setCourseId(course.getCourseId());
+            courseInfo.setCourseName(course.getCourseName());
+            courseInfo.setTeacherName(teacher != null ? teacher.getName() : "未知老师");
+            courseInfo.setLocation(course.getLocation());
+            courseInfo.setCourseDate(course.getCourseDate());
+            courseInfo.setTimeSlot(course.getTimeSlot());
+            courseInfo.setWeekNumber(course.getWeekNumber());
+            result.setCourseInfo(courseInfo);
+            
+            // 设置班级信息
+            DetailedAttendanceStatsDto.ClassInfo classInfo = new DetailedAttendanceStatsDto.ClassInfo();
+            classInfo.setClassCode(course.getClassCode());
+            classInfo.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+            classInfo.setTotalStudentCount(relations.size());
+            
+            // 统计本班级签到情况
+            Set<String> attendedStudents = attendanceRecords.stream()
+                    .map(AttendanceRecord::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            int classAttendedCount = 0;
+            for (StudentClassRelation relation : relations) {
+                if (attendedStudents.contains(relation.getStudentUsername())) {
+                    classAttendedCount++;
+                }
+            }
+            
+            classInfo.setAttendedCount(classAttendedCount);
+            classInfo.setAbsentCount(relations.size() - classAttendedCount);
+            result.setClassInfo(classInfo);
+            
+            // 构建本班级学生列表
+            List<DetailedAttendanceStatsDto.StudentAttendanceInfo> classStudents = new ArrayList<>();
+            for (StudentClassRelation relation : relations) {
+                DetailedAttendanceStatsDto.StudentAttendanceInfo studentInfo = new DetailedAttendanceStatsDto.StudentAttendanceInfo();
+                studentInfo.setStudentCode(relation.getStudentUsername());
+                studentInfo.setClassCode(relation.getClassCode());
+                studentInfo.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                studentInfo.setIsFromThisClass(true);
+                
+                // 获取学生姓名
+                QueryWrapper<User> userQuery = new QueryWrapper<>();
+                userQuery.eq("username", relation.getStudentUsername());
+                User user = userMapper.selectOne(userQuery);
+                studentInfo.setStudentName(user != null ? user.getName() : "未知学生");
+                
+                // 查找签到记录
+                AttendanceRecord record = attendanceRecords.stream()
+                        .filter(r -> r.getStudentUsername().equals(relation.getStudentUsername()))
+                        .findFirst()
+                        .orElse(null);
+                
+                if (record != null) {
+                    studentInfo.setIsAttended(true);
+                    studentInfo.setAttendanceTime(record.getAttendanceTime());
+                    studentInfo.setAttendanceStatus(record.getAttendanceStatus());
+                    studentInfo.setStatusText(getStatusText(record.getAttendanceStatus()));
+                } else {
+                    studentInfo.setIsAttended(false);
+                    studentInfo.setAttendanceTime(null);
+                    studentInfo.setAttendanceStatus(null);
+                    studentInfo.setStatusText("未签到");
+                }
+                
+                classStudents.add(studentInfo);
+            }
+            result.setClassStudents(classStudents);
+            
+            // 构建其他班级学生列表
+            List<DetailedAttendanceStatsDto.StudentAttendanceInfo> otherClassStudents = new ArrayList<>();
+            Set<String> classStudentCodes = relations.stream()
+                    .map(StudentClassRelation::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            for (AttendanceRecord record : attendanceRecords) {
+                if (!classStudentCodes.contains(record.getStudentUsername())) {
+                    DetailedAttendanceStatsDto.StudentAttendanceInfo studentInfo = new DetailedAttendanceStatsDto.StudentAttendanceInfo();
+                    studentInfo.setStudentCode(record.getStudentUsername());
+                    studentInfo.setIsAttended(true);
+                    studentInfo.setAttendanceTime(record.getAttendanceTime());
+                    studentInfo.setAttendanceStatus(record.getAttendanceStatus());
+                    studentInfo.setStatusText(getStatusText(record.getAttendanceStatus()));
+                    studentInfo.setIsFromThisClass(false);
+                    
+                    // 获取学生信息
+                    QueryWrapper<User> userQuery = new QueryWrapper<>();
+                    userQuery.eq("username", record.getStudentUsername());
+                    User user = userMapper.selectOne(userQuery);
+                    studentInfo.setStudentName(user != null ? user.getName() : "未知学生");
+                    
+                    // 获取学生班级信息（如果有绑定关系）
+                    QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+                    studentClassQuery.eq("student_username", record.getStudentUsername());
+                    StudentClassRelation studentRelation = studentClassRelationMapper.selectOne(studentClassQuery);
+                    
+                    if (studentRelation != null) {
+                        studentInfo.setClassCode(studentRelation.getClassCode());
+                        QueryWrapper<Class> studentClassInfoQuery = new QueryWrapper<>();
+                        studentClassInfoQuery.eq("class_code", studentRelation.getClassCode());
+                        Class studentClass = classMapper.selectOne(studentClassInfoQuery);
+                        studentInfo.setClassName(studentClass != null ? studentClass.getClassName() : "未知班级");
+                    } else {
+                        studentInfo.setClassCode("未绑定");
+                        studentInfo.setClassName("未绑定班级");
+                    }
+                    
+                    otherClassStudents.add(studentInfo);
+                }
+            }
+            result.setOtherClassStudents(otherClassStudents);
+            
+            // 构建统计汇总
+            DetailedAttendanceStatsDto.AttendanceSummary summary = new DetailedAttendanceStatsDto.AttendanceSummary();
+            summary.setTotalAttended(attendanceRecords.size());
+            summary.setClassAttended(classAttendedCount);
+            summary.setOtherClassAttended(attendanceRecords.size() - classAttendedCount);
+            summary.setClassAbsent(relations.size() - classAttendedCount);
+            
+            // 计算签到率
+            if (relations.size() > 0) {
+                double rate = (double) classAttendedCount / relations.size() * 100;
+                summary.setAttendanceRate(Math.round(rate * 100.0) / 100.0);
+            } else {
+                summary.setAttendanceRate(0.0);
+            }
+            
+            // 统计签到状态
+            int normalCount = 0, lateCount = 0, earlyLeaveCount = 0;
+            for (AttendanceRecord record : attendanceRecords) {
+                switch (record.getAttendanceStatus()) {
+                    case 1: normalCount++; break;
+                    case 2: lateCount++; break;
+                    case 3: earlyLeaveCount++; break;
+                }
+            }
+            summary.setNormalCount(normalCount);
+            summary.setLateCount(lateCount);
+            summary.setEarlyLeaveCount(earlyLeaveCount);
+            
+            result.setSummary(summary);
+            
+            return result;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取详细签到统计失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取签到状态文本
+     */
+    private String getStatusText(Integer status) {
+        if (status == null) return "未签到";
+        switch (status) {
+            case 1: return "正常签到";
+            case 2: return "迟到";
+            case 3: return "早退";
+            default: return "未知状态";
         }
     }
     
