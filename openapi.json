@@ -1,0 +1,3070 @@
+{
+  "openapi" : "3.0.1",
+  "info" : {
+    "title" : "API Documentation",
+    "version" : "1.0"
+  },
+  "paths" : {
+    "/api/auth/login" : {
+      "post" : {
+        "summary" : "用户登录",
+        "description" : "用户登录",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "username" : {
+                    "type" : "string",
+                    "description" : "学号/工号"
+                  },
+                  "password" : {
+                    "type" : "string",
+                    "description" : "密码"
+                  },
+                  "rememberMe" : {
+                    "type" : "boolean",
+                    "description" : "是否记住账号"
+                  }
+                },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "userId" : {
+                          "type" : "integer",
+                          "description" : "用户ID",
+                          "format" : "int64"
+                        },
+                        "username" : {
+                          "type" : "string",
+                          "description" : "学号/工号"
+                        },
+                        "name" : {
+                          "type" : "string",
+                          "description" : "姓名"
+                        },
+                        "role" : {
+                          "type" : "string",
+                          "description" : "角色"
+                        },
+                        "token" : {
+                          "type" : "string",
+                          "description" : "JWT Token"
+                        },
+                        "isFirstLogin" : {
+                          "type" : "boolean",
+                          "description" : "是否首次登录"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/set-password" : {
+      "post" : {
+        "summary" : "设置密码",
+        "description" : "设置密码",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "username" : {
+                    "type" : "string",
+                    "description" : "学号/工号"
+                  },
+                  "password" : {
+                    "type" : "string",
+                    "description" : "新密码"
+                  },
+                  "confirmPassword" : {
+                    "type" : "string",
+                    "description" : "确认密码"
+                  }
+                },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/check-user/{username}" : {
+      "get" : {
+        "summary" : "检查用户是否存在",
+        "description" : "检查用户是否存在",
+        "parameters" : [ {
+          "name" : "username",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "boolean",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/check-user-status/{username}" : {
+      "get" : {
+        "summary" : "检查用户状态（是否存在、是否已设置密码）",
+        "description" : "检查用户状态（是否存在、是否已设置密码）",
+        "parameters" : [ {
+          "name" : "username",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "exists" : {
+                          "type" : "boolean",
+                          "description" : "用户是否存在"
+                        },
+                        "passwordSet" : {
+                          "type" : "boolean",
+                          "description" : "是否已设置密码"
+                        },
+                        "role" : {
+                          "type" : "string",
+                          "description" : "用户角色"
+                        },
+                        "name" : {
+                          "type" : "string",
+                          "description" : "用户姓名"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/attendance/scan" : {
+      "post" : {
+        "summary" : "扫码签到",
+        "description" : "扫码签到",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "qrData" : {
+                    "type" : "string",
+                    "description" : "二维码数据（Base64编码）"
+                  }
+                },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "courseName" : {
+                          "type" : "string",
+                          "description" : "课程名称"
+                        },
+                        "teacherName" : {
+                          "type" : "string",
+                          "description" : "老师姓名"
+                        },
+                        "attendanceTime" : {
+                          "type" : "string",
+                          "description" : "签到时间"
+                        },
+                        "location" : {
+                          "type" : "string",
+                          "description" : "上课地点"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/attendance/records" : {
+      "get" : {
+        "summary" : "获取签到记录",
+        "description" : "获取签到记录",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "teacherName" : {
+                            "type" : "string",
+                            "description" : "老师姓名"
+                          },
+                          "attendanceTime" : {
+                            "type" : "string",
+                            "description" : "签到时间"
+                          },
+                          "location" : {
+                            "type" : "string",
+                            "description" : "上课地点"
+                          },
+                          "status" : {
+                            "type" : "integer",
+                            "description" : "签到状态：0-未签到，1-已签到"
+                          }
+                        },
+                        "description" : "签到记录DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/attendance/stats" : {
+      "get" : {
+        "summary" : "获取签到统计",
+        "description" : "获取签到统计",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "totalAttendance" : {
+                          "type" : "integer",
+                          "description" : "总签到次数"
+                        },
+                        "attendanceRate" : {
+                          "type" : "number",
+                          "description" : "签到率（百分比）"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/bind-class" : {
+      "post" : {
+        "summary" : "绑定班级",
+        "description" : "绑定班级",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "verificationCode" : {
+                    "type" : "string",
+                    "description" : "班级验证码"
+                  }
+                },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/classes" : {
+      "get" : {
+        "summary" : "获取已绑定的班级列表",
+        "description" : "获取已绑定的班级列表",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级编号"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "班级名称"
+                          },
+                          "bindTime" : {
+                            "type" : "string",
+                            "description" : "绑定时间"
+                          }
+                        },
+                        "description" : "班级信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/photo/upload" : {
+      "post" : {
+        "summary" : "上传课堂照片",
+        "description" : "上传课堂照片",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "query",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "nullable" : false
+          }
+        }, {
+          "name" : "remark",
+          "in" : "query",
+          "description" : "",
+          "required" : false,
+          "schema" : {
+            "type" : "string",
+            "nullable" : false
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "description" : "",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "photoId" : {
+                          "type" : "integer",
+                          "description" : "照片ID",
+                          "format" : "int64"
+                        },
+                        "photoName" : {
+                          "type" : "string",
+                          "description" : "照片文件名"
+                        },
+                        "photoUrl" : {
+                          "type" : "string",
+                          "description" : "照片访问URL"
+                        },
+                        "fileSize" : {
+                          "type" : "integer",
+                          "description" : "照片大小（字节）",
+                          "format" : "int64"
+                        },
+                        "uploadTime" : {
+                          "type" : "string",
+                          "description" : "上传时间"
+                        },
+                        "remark" : {
+                          "type" : "string",
+                          "description" : "照片备注"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/photos" : {
+      "get" : {
+        "summary" : "获取学生的课堂照片列表",
+        "description" : "获取学生的课堂照片列表",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "id" : {
+                            "type" : "integer",
+                            "description" : "照片ID",
+                            "format" : "int64"
+                          },
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "studentUsername" : {
+                            "type" : "string",
+                            "description" : "学生用户名"
+                          },
+                          "studentName" : {
+                            "type" : "string",
+                            "description" : "学生姓名"
+                          },
+                          "photoName" : {
+                            "type" : "string",
+                            "description" : "照片文件名"
+                          },
+                          "photoUrl" : {
+                            "type" : "string",
+                            "description" : "照片访问URL"
+                          },
+                          "photoPath" : {
+                            "type" : "string",
+                            "description" : "照片存储路径"
+                          },
+                          "compressedPhotoPath" : {
+                            "type" : "string",
+                            "description" : "压缩图存储路径"
+                          },
+                          "remark" : {
+                            "type" : "string",
+                            "description" : "照片备注"
+                          },
+                          "fileSize" : {
+                            "type" : "integer",
+                            "description" : "照片大小（字节）",
+                            "format" : "int64"
+                          },
+                          "uploadTime" : {
+                            "type" : "string",
+                            "description" : "上传时间"
+                          }
+                        },
+                        "description" : "课堂照片信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/photos/course/{courseId}" : {
+      "get" : {
+        "summary" : "根据课程ID获取学生的课堂照片",
+        "description" : "根据课程ID获取学生的课堂照片",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "id" : {
+                            "type" : "integer",
+                            "description" : "照片ID",
+                            "format" : "int64"
+                          },
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "studentUsername" : {
+                            "type" : "string",
+                            "description" : "学生用户名"
+                          },
+                          "studentName" : {
+                            "type" : "string",
+                            "description" : "学生姓名"
+                          },
+                          "photoName" : {
+                            "type" : "string",
+                            "description" : "照片文件名"
+                          },
+                          "photoUrl" : {
+                            "type" : "string",
+                            "description" : "照片访问URL"
+                          },
+                          "photoPath" : {
+                            "type" : "string",
+                            "description" : "照片存储路径"
+                          },
+                          "compressedPhotoPath" : {
+                            "type" : "string",
+                            "description" : "压缩图存储路径"
+                          },
+                          "remark" : {
+                            "type" : "string",
+                            "description" : "照片备注"
+                          },
+                          "fileSize" : {
+                            "type" : "integer",
+                            "description" : "照片大小（字节）",
+                            "format" : "int64"
+                          },
+                          "uploadTime" : {
+                            "type" : "string",
+                            "description" : "上传时间"
+                          }
+                        },
+                        "description" : "课堂照片信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/photo/{photoId}" : {
+      "get" : {
+        "summary" : "查看照片（返回照片文件）",
+        "description" : "查看照片（返回照片文件）",
+        "parameters" : [ {
+          "name" : "photoId",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete" : {
+        "summary" : "删除课堂照片",
+        "description" : "删除课堂照片",
+        "parameters" : [ {
+          "name" : "photoId",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/notes/word/{courseId}" : {
+      "get" : {
+        "summary" : "生成并下载课堂笔记Word文档",
+        "description" : "生成并下载课堂笔记Word文档",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/courses" : {
+      "get" : {
+        "summary" : "获取学生的所有课程",
+        "description" : "获取学生的所有课程",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "上课班级"
+                          },
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级代码"
+                          },
+                          "teacherUsername" : {
+                            "type" : "string",
+                            "description" : "教师用户名"
+                          },
+                          "teacherName" : {
+                            "type" : "string",
+                            "description" : "教师姓名"
+                          },
+                          "timeSlot" : {
+                            "type" : "string",
+                            "description" : "上课时间段"
+                          },
+                          "location" : {
+                            "type" : "string",
+                            "description" : "上课地点"
+                          },
+                          "courseDate" : {
+                            "type" : "string",
+                            "description" : "课程日期"
+                          },
+                          "canStartAttendance" : {
+                            "type" : "boolean",
+                            "description" : "是否可发起签到"
+                          },
+                          "documentCount" : {
+                            "type" : "integer",
+                            "description" : "学生文档数量"
+                          },
+                          "canViewDocuments" : {
+                            "type" : "boolean",
+                            "description" : "是否可查看文档"
+                          }
+                        },
+                        "description" : "课程信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/student/courses/date/{date}" : {
+      "get" : {
+        "summary" : "按日期查询学生的课程",
+        "description" : "按日期查询学生的课程",
+        "parameters" : [ {
+          "name" : "date",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "上课班级"
+                          },
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级代码"
+                          },
+                          "teacherUsername" : {
+                            "type" : "string",
+                            "description" : "教师用户名"
+                          },
+                          "teacherName" : {
+                            "type" : "string",
+                            "description" : "教师姓名"
+                          },
+                          "timeSlot" : {
+                            "type" : "string",
+                            "description" : "上课时间段"
+                          },
+                          "location" : {
+                            "type" : "string",
+                            "description" : "上课地点"
+                          },
+                          "courseDate" : {
+                            "type" : "string",
+                            "description" : "课程日期"
+                          },
+                          "canStartAttendance" : {
+                            "type" : "boolean",
+                            "description" : "是否可发起签到"
+                          },
+                          "documentCount" : {
+                            "type" : "integer",
+                            "description" : "学生文档数量"
+                          },
+                          "canViewDocuments" : {
+                            "type" : "boolean",
+                            "description" : "是否可查看文档"
+                          }
+                        },
+                        "description" : "课程信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/courses" : {
+      "get" : {
+        "summary" : "获取老师今日课程",
+        "description" : "获取老师今日课程",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "上课班级"
+                          },
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级代码"
+                          },
+                          "teacherUsername" : {
+                            "type" : "string",
+                            "description" : "教师用户名"
+                          },
+                          "teacherName" : {
+                            "type" : "string",
+                            "description" : "教师姓名"
+                          },
+                          "timeSlot" : {
+                            "type" : "string",
+                            "description" : "上课时间段"
+                          },
+                          "location" : {
+                            "type" : "string",
+                            "description" : "上课地点"
+                          },
+                          "courseDate" : {
+                            "type" : "string",
+                            "description" : "课程日期"
+                          },
+                          "canStartAttendance" : {
+                            "type" : "boolean",
+                            "description" : "是否可发起签到"
+                          },
+                          "documentCount" : {
+                            "type" : "integer",
+                            "description" : "学生文档数量"
+                          },
+                          "canViewDocuments" : {
+                            "type" : "boolean",
+                            "description" : "是否可查看文档"
+                          }
+                        },
+                        "description" : "课程信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/courses/all" : {
+      "get" : {
+        "summary" : "获取老师所有课程",
+        "description" : "获取老师所有课程",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "上课班级"
+                          },
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级代码"
+                          },
+                          "teacherUsername" : {
+                            "type" : "string",
+                            "description" : "教师用户名"
+                          },
+                          "teacherName" : {
+                            "type" : "string",
+                            "description" : "教师姓名"
+                          },
+                          "timeSlot" : {
+                            "type" : "string",
+                            "description" : "上课时间段"
+                          },
+                          "location" : {
+                            "type" : "string",
+                            "description" : "上课地点"
+                          },
+                          "courseDate" : {
+                            "type" : "string",
+                            "description" : "课程日期"
+                          },
+                          "canStartAttendance" : {
+                            "type" : "boolean",
+                            "description" : "是否可发起签到"
+                          },
+                          "documentCount" : {
+                            "type" : "integer",
+                            "description" : "学生文档数量"
+                          },
+                          "canViewDocuments" : {
+                            "type" : "boolean",
+                            "description" : "是否可查看文档"
+                          }
+                        },
+                        "description" : "课程信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/courses/by-date" : {
+      "get" : {
+        "summary" : "根据日期获取老师课程",
+        "description" : "根据日期获取老师课程",
+        "parameters" : [ {
+          "name" : "date",
+          "in" : "query",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "nullable" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "courseId" : {
+                            "type" : "string",
+                            "description" : "课程ID"
+                          },
+                          "courseName" : {
+                            "type" : "string",
+                            "description" : "课程名称"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "上课班级"
+                          },
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级代码"
+                          },
+                          "teacherUsername" : {
+                            "type" : "string",
+                            "description" : "教师用户名"
+                          },
+                          "teacherName" : {
+                            "type" : "string",
+                            "description" : "教师姓名"
+                          },
+                          "timeSlot" : {
+                            "type" : "string",
+                            "description" : "上课时间段"
+                          },
+                          "location" : {
+                            "type" : "string",
+                            "description" : "上课地点"
+                          },
+                          "courseDate" : {
+                            "type" : "string",
+                            "description" : "课程日期"
+                          },
+                          "canStartAttendance" : {
+                            "type" : "boolean",
+                            "description" : "是否可发起签到"
+                          },
+                          "documentCount" : {
+                            "type" : "integer",
+                            "description" : "学生文档数量"
+                          },
+                          "canViewDocuments" : {
+                            "type" : "boolean",
+                            "description" : "是否可查看文档"
+                          }
+                        },
+                        "description" : "课程信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance/qr" : {
+      "post" : {
+        "summary" : "生成签到二维码",
+        "description" : "生成签到二维码",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "query",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "nullable" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "qrContent" : {
+                          "type" : "string",
+                          "description" : "二维码内容"
+                        },
+                        "qrImage" : {
+                          "type" : "string",
+                          "description" : "二维码图片Base64"
+                        },
+                        "courseId" : {
+                          "type" : "string",
+                          "description" : "课程ID"
+                        },
+                        "timestamp" : {
+                          "type" : "integer",
+                          "description" : "生成时间戳",
+                          "format" : "int64"
+                        },
+                        "remainingTime" : {
+                          "type" : "integer",
+                          "description" : "剩余有效时间（秒）"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance/stats" : {
+      "get" : {
+        "summary" : "获取签到统计",
+        "description" : "获取签到统计",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "query",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "nullable" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "totalAttendance" : {
+                          "type" : "integer",
+                          "description" : "总签到次数"
+                        },
+                        "attendanceRate" : {
+                          "type" : "number",
+                          "description" : "签到率（百分比）"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance/absent-students" : {
+      "get" : {
+        "summary" : "获取未签到学生名单",
+        "description" : "获取未签到学生名单",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "query",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string",
+            "nullable" : false
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "string"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance/course/{courseId}" : {
+      "get" : {
+        "summary" : "查看课程签到情况",
+        "description" : "查看课程签到情况",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "studentCode" : {
+                            "type" : "string",
+                            "description" : "学生学号"
+                          },
+                          "studentName" : {
+                            "type" : "string",
+                            "description" : "学生姓名"
+                          },
+                          "attendanceStatus" : {
+                            "type" : "integer",
+                            "description" : "签到状态：0-未签到，1-已签到"
+                          },
+                          "attendanceTime" : {
+                            "type" : "string",
+                            "description" : "签到时间"
+                          }
+                        },
+                        "description" : "学生签到状态DTO（老师端使用）"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance/update" : {
+      "put" : {
+        "summary" : "修改学生签到状态",
+        "description" : "修改学生签到状态",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "courseId" : {
+                    "type" : "string",
+                    "description" : "课程ID"
+                  },
+                  "studentCode" : {
+                    "type" : "string",
+                    "description" : "学生学号"
+                  },
+                  "status" : {
+                    "type" : "integer",
+                    "description" : "签到状态：0-未签到，1-已签到"
+                  }
+                },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/import/students" : {
+      "post" : {
+        "summary" : "导入学生数据",
+        "description" : "导入学生数据",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "description" : "",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/import/courses" : {
+      "post" : {
+        "summary" : "导入课程数据",
+        "description" : "导入课程数据",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "description" : "",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/template/students" : {
+      "get" : {
+        "summary" : "下载学生模板",
+        "description" : "下载学生模板",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/template/courses" : {
+      "get" : {
+        "summary" : "下载课程模板",
+        "description" : "下载课程模板",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/template/courses-from-student" : {
+      "post" : {
+        "summary" : "从学生数据生成课程模板",
+        "description" : "从学生数据生成课程模板",
+        "requestBody" : {
+          "content" : {
+            "multipart/form-data" : {
+              "schema" : {
+                "required" : [ "file" ],
+                "type" : "object",
+                "properties" : {
+                  "file" : {
+                    "type" : "string",
+                    "description" : "",
+                    "format" : "binary"
+                  }
+                }
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "array",
+                  "items" : {
+                    "type" : "integer"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/students" : {
+      "get" : {
+        "summary" : "获取老师的学生列表",
+        "description" : "获取老师的学生列表",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "array",
+                      "description" : "响应数据",
+                      "items" : {
+                        "type" : "object",
+                        "properties" : {
+                          "studentCode" : {
+                            "type" : "string",
+                            "description" : "学生学号"
+                          },
+                          "studentName" : {
+                            "type" : "string",
+                            "description" : "学生姓名"
+                          },
+                          "classCode" : {
+                            "type" : "string",
+                            "description" : "班级编号"
+                          },
+                          "className" : {
+                            "type" : "string",
+                            "description" : "班级名称"
+                          }
+                        },
+                        "description" : "学生信息DTO"
+                      }
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/attendance/detailed-stats/{courseId}" : {
+      "get" : {
+        "summary" : "获取详细签到统计",
+        "description" : "获取详细签到统计",
+        "parameters" : [ {
+          "name" : "courseId",
+          "in" : "path",
+          "description" : "",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "object",
+                      "properties" : {
+                        "courseInfo" : {
+                          "type" : "object",
+                          "properties" : {
+                            "courseId" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "courseName" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "teacherName" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "location" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "courseDate" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "timeSlot" : {
+                              "type" : "string",
+                              "description" : ""
+                            }
+                          },
+                          "description" : "课程信息"
+                        },
+                        "classInfo" : {
+                          "type" : "object",
+                          "properties" : {
+                            "classCode" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "className" : {
+                              "type" : "string",
+                              "description" : ""
+                            },
+                            "totalStudentCount" : {
+                              "type" : "integer",
+                              "description" : "班级总人数"
+                            },
+                            "attendedCount" : {
+                              "type" : "integer",
+                              "description" : "本班级已签到人数"
+                            },
+                            "absentCount" : {
+                              "type" : "integer",
+                              "description" : "本班级未签到人数"
+                            }
+                          },
+                          "description" : "班级信息"
+                        },
+                        "classStudents" : {
+                          "type" : "array",
+                          "description" : "本班级学生签到情况",
+                          "items" : {
+                            "type" : "object",
+                            "properties" : {
+                              "studentCode" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "studentName" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "classCode" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "className" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "isAttended" : {
+                                "type" : "boolean",
+                                "description" : "是否已签到"
+                              },
+                              "attendanceTime" : {
+                                "type" : "string",
+                                "description" : "签到时间"
+                              },
+                              "attendanceStatus" : {
+                                "type" : "integer",
+                                "description" : "签到状态：1-正常，2-迟到，3-早退"
+                              },
+                              "statusText" : {
+                                "type" : "string",
+                                "description" : "状态文本"
+                              },
+                              "isFromThisClass" : {
+                                "type" : "boolean",
+                                "description" : "是否来自本班级"
+                              }
+                            },
+                            "description" : "学生签到信息"
+                          }
+                        },
+                        "otherClassStudents" : {
+                          "type" : "array",
+                          "description" : "非本班级但已签到的学生",
+                          "items" : {
+                            "type" : "object",
+                            "properties" : {
+                              "studentCode" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "studentName" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "classCode" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "className" : {
+                                "type" : "string",
+                                "description" : ""
+                              },
+                              "isAttended" : {
+                                "type" : "boolean",
+                                "description" : "是否已签到"
+                              },
+                              "attendanceTime" : {
+                                "type" : "string",
+                                "description" : "签到时间"
+                              },
+                              "attendanceStatus" : {
+                                "type" : "integer",
+                                "description" : "签到状态：1-正常，2-迟到，3-早退"
+                              },
+                              "statusText" : {
+                                "type" : "string",
+                                "description" : "状态文本"
+                              },
+                              "isFromThisClass" : {
+                                "type" : "boolean",
+                                "description" : "是否来自本班级"
+                              }
+                            },
+                            "description" : "学生签到信息"
+                          }
+                        },
+                        "summary" : {
+                          "type" : "object",
+                          "properties" : {
+                            "totalAttended" : {
+                              "type" : "integer",
+                              "description" : "总签到人数"
+                            },
+                            "classAttended" : {
+                              "type" : "integer",
+                              "description" : "本班级签到人数"
+                            },
+                            "otherClassAttended" : {
+                              "type" : "integer",
+                              "description" : "其他班级签到人数"
+                            },
+                            "classAbsent" : {
+                              "type" : "integer",
+                              "description" : "本班级未签到人数"
+                            },
+                            "attendanceRate" : {
+                              "type" : "number",
+                              "description" : "本班级签到率"
+                            },
+                            "normalCount" : {
+                              "type" : "integer",
+                              "description" : "正常签到人数"
+                            },
+                            "lateCount" : {
+                              "type" : "integer",
+                              "description" : "迟到人数"
+                            },
+                            "earlyLeaveCount" : {
+                              "type" : "integer",
+                              "description" : "早退人数"
+                            }
+                          },
+                          "description" : "统计汇总"
+                        }
+                      },
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/teacher/students/update" : {
+      "put" : {
+        "summary" : "更新学生信息",
+        "description" : "更新学生信息",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : {
+                  "studentCode" : {
+                    "type" : "string",
+                    "description" : "学生学号"
+                  },
+                  "studentName" : {
+                    "type" : "string",
+                    "description" : "学生姓名"
+                  },
+                  "classCode" : {
+                    "type" : "string",
+                    "description" : "班级编号"
+                  }
+                },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/check" : {
+      "get" : {
+        "summary" : "GET健康检查接口",
+        "description" : "GET健康检查接口",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post" : {
+        "summary" : "POST健康检查接口",
+        "description" : "POST健康检查接口",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "type" : "object",
+                "properties" : { },
+                "description" : ""
+              }
+            }
+          }
+        },
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/test-excel" : {
+      "get" : {
+        "summary" : "Excel功能测试接口",
+        "description" : "Excel功能测试接口",
+        "responses" : {
+          "200" : {
+            "description" : "",
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "type" : "object",
+                  "properties" : {
+                    "code" : {
+                      "type" : "integer",
+                      "description" : "响应码"
+                    },
+                    "message" : {
+                      "type" : "string",
+                      "description" : "响应消息"
+                    },
+                    "data" : {
+                      "type" : "string",
+                      "description" : "响应数据"
+                    },
+                    "timestamp" : {
+                      "type" : "integer",
+                      "description" : "时间戳",
+                      "format" : "int64"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components" : {
+    "schemas" : {
+      "登录响应DTO" : {
+        "type" : "object",
+        "properties" : {
+          "userId" : {
+            "type" : "integer",
+            "description" : "用户ID",
+            "format" : "int64"
+          },
+          "username" : {
+            "type" : "string",
+            "description" : "学号/工号"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "姓名"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "角色"
+          },
+          "token" : {
+            "type" : "string",
+            "description" : "JWT Token"
+          },
+          "isFirstLogin" : {
+            "type" : "boolean",
+            "description" : "是否首次登录"
+          }
+        },
+        "description" : "响应数据"
+      },
+      "用户状态DTO" : {
+        "type" : "object",
+        "properties" : {
+          "exists" : {
+            "type" : "boolean",
+            "description" : "用户是否存在"
+          },
+          "passwordSet" : {
+            "type" : "boolean",
+            "description" : "是否已设置密码"
+          },
+          "role" : {
+            "type" : "string",
+            "description" : "用户角色"
+          },
+          "name" : {
+            "type" : "string",
+            "description" : "用户姓名"
+          }
+        },
+        "description" : "响应数据"
+      },
+      "签到结果DTO" : {
+        "type" : "object",
+        "properties" : {
+          "courseName" : {
+            "type" : "string",
+            "description" : "课程名称"
+          },
+          "teacherName" : {
+            "type" : "string",
+            "description" : "老师姓名"
+          },
+          "attendanceTime" : {
+            "type" : "string",
+            "description" : "签到时间"
+          },
+          "location" : {
+            "type" : "string",
+            "description" : "上课地点"
+          }
+        },
+        "description" : "响应数据"
+      },
+      "签到记录DTO" : {
+        "type" : "object",
+        "properties" : {
+          "courseId" : {
+            "type" : "string",
+            "description" : "课程ID"
+          },
+          "courseName" : {
+            "type" : "string",
+            "description" : "课程名称"
+          },
+          "teacherName" : {
+            "type" : "string",
+            "description" : "老师姓名"
+          },
+          "attendanceTime" : {
+            "type" : "string",
+            "description" : "签到时间"
+          },
+          "location" : {
+            "type" : "string",
+            "description" : "上课地点"
+          },
+          "status" : {
+            "type" : "integer",
+            "description" : "签到状态：0-未签到，1-已签到"
+          }
+        },
+        "description" : "签到记录DTO"
+      },
+      "签到统计DTO" : {
+        "type" : "object",
+        "properties" : {
+          "totalAttendance" : {
+            "type" : "integer",
+            "description" : "总签到次数"
+          },
+          "attendanceRate" : {
+            "type" : "number",
+            "description" : "签到率（百分比）"
+          }
+        },
+        "description" : "响应数据"
+      },
+      "班级信息DTO" : {
+        "type" : "object",
+        "properties" : {
+          "classCode" : {
+            "type" : "string",
+            "description" : "班级编号"
+          },
+          "className" : {
+            "type" : "string",
+            "description" : "班级名称"
+          },
+          "bindTime" : {
+            "type" : "string",
+            "description" : "绑定时间"
+          }
+        },
+        "description" : "班级信息DTO"
+      },
+      "照片上传响应DTO" : {
+        "type" : "object",
+        "properties" : {
+          "photoId" : {
+            "type" : "integer",
+            "description" : "照片ID",
+            "format" : "int64"
+          },
+          "photoName" : {
+            "type" : "string",
+            "description" : "照片文件名"
+          },
+          "photoUrl" : {
+            "type" : "string",
+            "description" : "照片访问URL"
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "description" : "照片大小（字节）",
+            "format" : "int64"
+          },
+          "uploadTime" : {
+            "type" : "string",
+            "description" : "上传时间"
+          },
+          "remark" : {
+            "type" : "string",
+            "description" : "照片备注"
+          }
+        },
+        "description" : "响应数据"
+      },
+      "课堂照片信息DTO" : {
+        "type" : "object",
+        "properties" : {
+          "id" : {
+            "type" : "integer",
+            "description" : "照片ID",
+            "format" : "int64"
+          },
+          "courseId" : {
+            "type" : "string",
+            "description" : "课程ID"
+          },
+          "courseName" : {
+            "type" : "string",
+            "description" : "课程名称"
+          },
+          "studentUsername" : {
+            "type" : "string",
+            "description" : "学生用户名"
+          },
+          "studentName" : {
+            "type" : "string",
+            "description" : "学生姓名"
+          },
+          "photoName" : {
+            "type" : "string",
+            "description" : "照片文件名"
+          },
+          "photoUrl" : {
+            "type" : "string",
+            "description" : "照片访问URL"
+          },
+          "photoPath" : {
+            "type" : "string",
+            "description" : "照片存储路径"
+          },
+          "compressedPhotoPath" : {
+            "type" : "string",
+            "description" : "压缩图存储路径"
+          },
+          "remark" : {
+            "type" : "string",
+            "description" : "照片备注"
+          },
+          "fileSize" : {
+            "type" : "integer",
+            "description" : "照片大小（字节）",
+            "format" : "int64"
+          },
+          "uploadTime" : {
+            "type" : "string",
+            "description" : "上传时间"
+          }
+        },
+        "description" : "课堂照片信息DTO"
+      },
+      "课程信息DTO" : {
+        "type" : "object",
+        "properties" : {
+          "courseId" : {
+            "type" : "string",
+            "description" : "课程ID"
+          },
+          "courseName" : {
+            "type" : "string",
+            "description" : "课程名称"
+          },
+          "className" : {
+            "type" : "string",
+            "description" : "上课班级"
+          },
+          "classCode" : {
+            "type" : "string",
+            "description" : "班级代码"
+          },
+          "teacherUsername" : {
+            "type" : "string",
+            "description" : "教师用户名"
+          },
+          "teacherName" : {
+            "type" : "string",
+            "description" : "教师姓名"
+          },
+          "timeSlot" : {
+            "type" : "string",
+            "description" : "上课时间段"
+          },
+          "location" : {
+            "type" : "string",
+            "description" : "上课地点"
+          },
+          "courseDate" : {
+            "type" : "string",
+            "description" : "课程日期"
+          },
+          "canStartAttendance" : {
+            "type" : "boolean",
+            "description" : "是否可发起签到"
+          },
+          "documentCount" : {
+            "type" : "integer",
+            "description" : "学生文档数量"
+          },
+          "canViewDocuments" : {
+            "type" : "boolean",
+            "description" : "是否可查看文档"
+          }
+        },
+        "description" : "课程信息DTO"
+      },
+      "签到二维码DTO" : {
+        "type" : "object",
+        "properties" : {
+          "qrContent" : {
+            "type" : "string",
+            "description" : "二维码内容"
+          },
+          "qrImage" : {
+            "type" : "string",
+            "description" : "二维码图片Base64"
+          },
+          "courseId" : {
+            "type" : "string",
+            "description" : "课程ID"
+          },
+          "timestamp" : {
+            "type" : "integer",
+            "description" : "生成时间戳",
+            "format" : "int64"
+          },
+          "remainingTime" : {
+            "type" : "integer",
+            "description" : "剩余有效时间（秒）"
+          }
+        },
+        "description" : "响应数据"
+      },
+      "学生签到状态DTO（老师端使用）" : {
+        "type" : "object",
+        "properties" : {
+          "studentCode" : {
+            "type" : "string",
+            "description" : "学生学号"
+          },
+          "studentName" : {
+            "type" : "string",
+            "description" : "学生姓名"
+          },
+          "attendanceStatus" : {
+            "type" : "integer",
+            "description" : "签到状态：0-未签到，1-已签到"
+          },
+          "attendanceTime" : {
+            "type" : "string",
+            "description" : "签到时间"
+          }
+        },
+        "description" : "学生签到状态DTO（老师端使用）"
+      },
+      "学生信息DTO" : {
+        "type" : "object",
+        "properties" : {
+          "studentCode" : {
+            "type" : "string",
+            "description" : "学生学号"
+          },
+          "studentName" : {
+            "type" : "string",
+            "description" : "学生姓名"
+          },
+          "classCode" : {
+            "type" : "string",
+            "description" : "班级编号"
+          },
+          "className" : {
+            "type" : "string",
+            "description" : "班级名称"
+          }
+        },
+        "description" : "学生信息DTO"
+      },
+      "课程信息" : {
+        "type" : "object",
+        "properties" : {
+          "courseId" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "courseName" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "teacherName" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "location" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "courseDate" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "timeSlot" : {
+            "type" : "string",
+            "description" : ""
+          }
+        },
+        "description" : "课程信息"
+      },
+      "班级信息" : {
+        "type" : "object",
+        "properties" : {
+          "classCode" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "className" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "totalStudentCount" : {
+            "type" : "integer",
+            "description" : "班级总人数"
+          },
+          "attendedCount" : {
+            "type" : "integer",
+            "description" : "本班级已签到人数"
+          },
+          "absentCount" : {
+            "type" : "integer",
+            "description" : "本班级未签到人数"
+          }
+        },
+        "description" : "班级信息"
+      },
+      "学生签到信息" : {
+        "type" : "object",
+        "properties" : {
+          "studentCode" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "studentName" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "classCode" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "className" : {
+            "type" : "string",
+            "description" : ""
+          },
+          "isAttended" : {
+            "type" : "boolean",
+            "description" : "是否已签到"
+          },
+          "attendanceTime" : {
+            "type" : "string",
+            "description" : "签到时间"
+          },
+          "attendanceStatus" : {
+            "type" : "integer",
+            "description" : "签到状态：1-正常，2-迟到，3-早退"
+          },
+          "statusText" : {
+            "type" : "string",
+            "description" : "状态文本"
+          },
+          "isFromThisClass" : {
+            "type" : "boolean",
+            "description" : "是否来自本班级"
+          }
+        },
+        "description" : "学生签到信息"
+      },
+      "统计汇总" : {
+        "type" : "object",
+        "properties" : {
+          "totalAttended" : {
+            "type" : "integer",
+            "description" : "总签到人数"
+          },
+          "classAttended" : {
+            "type" : "integer",
+            "description" : "本班级签到人数"
+          },
+          "otherClassAttended" : {
+            "type" : "integer",
+            "description" : "其他班级签到人数"
+          },
+          "classAbsent" : {
+            "type" : "integer",
+            "description" : "本班级未签到人数"
+          },
+          "attendanceRate" : {
+            "type" : "number",
+            "description" : "本班级签到率"
+          },
+          "normalCount" : {
+            "type" : "integer",
+            "description" : "正常签到人数"
+          },
+          "lateCount" : {
+            "type" : "integer",
+            "description" : "迟到人数"
+          },
+          "earlyLeaveCount" : {
+            "type" : "integer",
+            "description" : "早退人数"
+          }
+        },
+        "description" : "统计汇总"
+      },
+      "详细签到统计DTO - 包含本班级完整签到情况" : {
+        "type" : "object",
+        "properties" : {
+          "courseInfo" : {
+            "type" : "object",
+            "properties" : {
+              "courseId" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "courseName" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "teacherName" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "location" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "courseDate" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "timeSlot" : {
+                "type" : "string",
+                "description" : ""
+              }
+            },
+            "description" : "课程信息"
+          },
+          "classInfo" : {
+            "type" : "object",
+            "properties" : {
+              "classCode" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "className" : {
+                "type" : "string",
+                "description" : ""
+              },
+              "totalStudentCount" : {
+                "type" : "integer",
+                "description" : "班级总人数"
+              },
+              "attendedCount" : {
+                "type" : "integer",
+                "description" : "本班级已签到人数"
+              },
+              "absentCount" : {
+                "type" : "integer",
+                "description" : "本班级未签到人数"
+              }
+            },
+            "description" : "班级信息"
+          },
+          "classStudents" : {
+            "type" : "array",
+            "description" : "本班级学生签到情况",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "studentCode" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "studentName" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "classCode" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "className" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "isAttended" : {
+                  "type" : "boolean",
+                  "description" : "是否已签到"
+                },
+                "attendanceTime" : {
+                  "type" : "string",
+                  "description" : "签到时间"
+                },
+                "attendanceStatus" : {
+                  "type" : "integer",
+                  "description" : "签到状态：1-正常，2-迟到，3-早退"
+                },
+                "statusText" : {
+                  "type" : "string",
+                  "description" : "状态文本"
+                },
+                "isFromThisClass" : {
+                  "type" : "boolean",
+                  "description" : "是否来自本班级"
+                }
+              },
+              "description" : "学生签到信息"
+            }
+          },
+          "otherClassStudents" : {
+            "type" : "array",
+            "description" : "非本班级但已签到的学生",
+            "items" : {
+              "type" : "object",
+              "properties" : {
+                "studentCode" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "studentName" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "classCode" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "className" : {
+                  "type" : "string",
+                  "description" : ""
+                },
+                "isAttended" : {
+                  "type" : "boolean",
+                  "description" : "是否已签到"
+                },
+                "attendanceTime" : {
+                  "type" : "string",
+                  "description" : "签到时间"
+                },
+                "attendanceStatus" : {
+                  "type" : "integer",
+                  "description" : "签到状态：1-正常，2-迟到，3-早退"
+                },
+                "statusText" : {
+                  "type" : "string",
+                  "description" : "状态文本"
+                },
+                "isFromThisClass" : {
+                  "type" : "boolean",
+                  "description" : "是否来自本班级"
+                }
+              },
+              "description" : "学生签到信息"
+            }
+          },
+          "summary" : {
+            "type" : "object",
+            "properties" : {
+              "totalAttended" : {
+                "type" : "integer",
+                "description" : "总签到人数"
+              },
+              "classAttended" : {
+                "type" : "integer",
+                "description" : "本班级签到人数"
+              },
+              "otherClassAttended" : {
+                "type" : "integer",
+                "description" : "其他班级签到人数"
+              },
+              "classAbsent" : {
+                "type" : "integer",
+                "description" : "本班级未签到人数"
+              },
+              "attendanceRate" : {
+                "type" : "number",
+                "description" : "本班级签到率"
+              },
+              "normalCount" : {
+                "type" : "integer",
+                "description" : "正常签到人数"
+              },
+              "lateCount" : {
+                "type" : "integer",
+                "description" : "迟到人数"
+              },
+              "earlyLeaveCount" : {
+                "type" : "integer",
+                "description" : "早退人数"
+              }
+            },
+            "description" : "统计汇总"
+          }
+        },
+        "description" : "响应数据"
+      }
+    }
+  }
+}
