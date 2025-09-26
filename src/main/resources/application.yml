@@ -34,7 +34,7 @@ mybatis-plus:
 # 本地存储路径配置
 file:
   upload:
-    path: D:/uploads/signlab/
+    path: /Users/tortoise/IdeaProjects/signLab1/uploads/signlab/
     photo:
       path: ${file.upload.path}photos/
     document:

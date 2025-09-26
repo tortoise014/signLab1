@@ -109,7 +109,7 @@ public class FileUploadUtil {
     
     /**
      * 生成照片存储路径
-     * 格式: uploads/signlab/photos/年/月/日/课程ID/类型/学生学号_时间戳.扩展名
+     * 格式: uploads/signlab/photos/年/月/日/课程ID/学生学号/类型/时间戳.扩展名
      */
     private String generatePhotoPath(String courseId, String studentUsername, String originalFilename, String type) {
         LocalDate now = LocalDate.now();
@@ -117,15 +117,15 @@ public class FileUploadUtil {
         String month = String.format("%02d", now.getMonthValue());
         String day = String.format("%02d", now.getDayOfMonth());
         
-        // 生成唯一文件名: 学生学号_日期_时间戳_随机码.扩展名
+        // 生成唯一文件名: 时间戳_随机码.扩展名
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         String randomCode = UUID.randomUUID().toString().substring(0, 8);
         String extension = getFileExtension(originalFilename);
-        String fileName = String.format("%s_%s_%s.%s", studentUsername, timestamp, randomCode, extension);
+        String fileName = String.format("%s_%s.%s", timestamp, randomCode, extension);
         
-        // 构建完整路径
-        return String.format("%s/%s/%s/%s/%s/%s/%s", 
-            photoUploadPath, year, month, day, courseId, type, fileName);
+        // 构建完整路径：日期 -> 课程 -> 学号 -> 类型
+        return String.format("%s/%s/%s/%s/%s/%s/%s/%s", 
+            photoUploadPath, year, month, day, courseId, studentUsername, type, fileName);
     }
     
     /**

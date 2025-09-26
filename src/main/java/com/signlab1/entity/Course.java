@@ -36,7 +36,7 @@ public class Course {
     private String teacherUsername;
     
     /**
-     * 上课班级编号
+     * 课程代码
      */
     @TableField("class_code")
     private String classCode;

@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 /**
- * 学生班级关联表 - 存储学生与班级的绑定关系
+ * 学生课程关联表 - 存储学生与课程的绑定关系
  */
 @Data
 @AllArgsConstructor
@@ -28,7 +28,7 @@ public class StudentClassRelation {
     private String studentUsername;
     
     /**
-     * 班级编号
+     * 课程代码
      */
     @TableField("class_code")
     private String classCode;

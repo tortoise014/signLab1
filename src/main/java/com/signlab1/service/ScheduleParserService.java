@@ -1,6 +1,9 @@
 package com.signlab1.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.signlab1.entity.Class;
 import com.signlab1.entity.Course;
+import com.signlab1.mapper.ClassMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +22,8 @@ import java.util.regex.Pattern;
 @Service
 @RequiredArgsConstructor
 public class ScheduleParserService {
+    
+    private final ClassMapper classMapper;
     
     /**
      * 解析上课时间地点字符串，生成课程列表
@@ -115,7 +120,28 @@ public class ScheduleParserService {
             course.setCourseId(courseId);
             course.setCourseName(courseName);
             course.setTeacherUsername(teacherUsername);
-            course.setClassCode(className);
+            // 根据班级名称查找班级编号
+            QueryWrapper<Class> classQuery = new QueryWrapper<>();
+            classQuery.eq("class_name", className);
+            Class clazz = classMapper.selectOne(classQuery);
+            
+            if (clazz != null) {
+                course.setClassCode(clazz.getClassCode()); // 使用现有班级编号
+            } else {
+                // 如果班级不存在，创建新班级
+                Class newClass = new Class();
+                newClass.setClassName(className);
+                newClass.setClassCode(generateClassCode());
+                newClass.setVerificationCode(generateVerificationCode());
+                newClass.setStudentCount(0);
+                newClass.setCreateTime(java.time.LocalDateTime.now());
+                newClass.setUpdateTime(java.time.LocalDateTime.now());
+                newClass.setIsDeleted(0);
+                
+                classMapper.insert(newClass);
+                course.setClassCode(newClass.getClassCode());
+                System.out.println("创建新班级: " + className + ", 班级编号: " + newClass.getClassCode());
+            }
             course.setLocation(location);
             course.setCourseDate(courseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             course.setTimeSlot(timeSlot);
@@ -224,6 +250,29 @@ public class ScheduleParserService {
         Random random = new Random();
         int randomNum = random.nextInt(1000000);
         return String.format("KC%s%06d", year, randomNum);
+    }
+    
+    /**
+     * 生成班级编号
+     */
+    private String generateClassCode() {
+        long timestamp = System.currentTimeMillis();
+        String timestampStr = String.valueOf(timestamp);
+        String last6Digits = timestampStr.substring(timestampStr.length() - 6);
+        
+        Random random = new Random();
+        int randomNum = random.nextInt(100);
+        
+        return "CL" + last6Digits + String.format("%02d", randomNum);
+    }
+    
+    /**
+     * 生成验证码
+     */
+    private String generateVerificationCode() {
+        Random random = new Random();
+        int code = random.nextInt(900000) + 100000; // 生成6位数字验证码
+        return String.valueOf(code);
     }
 }
 

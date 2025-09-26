@@ -449,4 +449,115 @@ public class StudentService {
     public byte[] generateClassNotesDocument(String studentCode, String courseId) {
         return wordDocumentService.generateClassNotesDocument(studentCode, courseId);
     }
+    
+    /**
+     * 获取学生的所有课程
+     */
+    public List<CourseInfoDto> getStudentCourses(String studentCode) {
+        try {
+            // 1. 获取学生绑定的课程代码
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.eq("student_username", studentCode);
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            if (relations.isEmpty()) {
+                return List.of();
+            }
+            
+            // 2. 获取这些课程代码对应的所有课程
+            List<String> classCodes = relations.stream()
+                    .map(StudentClassRelation::getClassCode)
+                    .collect(Collectors.toList());
+            
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.in("class_code", classCodes);
+            courseQuery.orderByDesc("course_date");
+            List<Course> courses = courseMapper.selectList(courseQuery);
+            
+            // 3. 转换为DTO
+            return courses.stream().map(course -> {
+                CourseInfoDto dto = new CourseInfoDto();
+                dto.setCourseId(course.getCourseId());
+                dto.setCourseName(course.getCourseName());
+                dto.setTeacherUsername(course.getTeacherUsername());
+                dto.setClassCode(course.getClassCode());
+                dto.setLocation(course.getLocation());
+                dto.setCourseDate(course.getCourseDate());
+                dto.setTimeSlot(course.getTimeSlot());
+                
+                // 获取教师信息
+                QueryWrapper<User> teacherQuery = new QueryWrapper<>();
+                teacherQuery.eq("username", course.getTeacherUsername());
+                User teacher = userMapper.selectOne(teacherQuery);
+                dto.setTeacherName(teacher != null ? teacher.getName() : "未知教师");
+                
+                // 获取班级信息
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.eq("class_code", course.getClassCode());
+                Class clazz = classMapper.selectOne(classQuery);
+                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                
+                return dto;
+            }).collect(Collectors.toList());
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取学生课程失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 按日期查询学生的课程
+     */
+    public List<CourseInfoDto> getStudentCoursesByDate(String studentCode, String date) {
+        try {
+            // 1. 获取学生绑定的课程代码
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.eq("student_username", studentCode);
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            if (relations.isEmpty()) {
+                return List.of();
+            }
+            
+            // 2. 获取指定日期的课程
+            List<String> classCodes = relations.stream()
+                    .map(StudentClassRelation::getClassCode)
+                    .collect(Collectors.toList());
+            
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.in("class_code", classCodes);
+            courseQuery.eq("course_date", date);
+            courseQuery.orderByAsc("time_slot");
+            List<Course> courses = courseMapper.selectList(courseQuery);
+            
+            // 3. 转换为DTO
+            return courses.stream().map(course -> {
+                CourseInfoDto dto = new CourseInfoDto();
+                dto.setCourseId(course.getCourseId());
+                dto.setCourseName(course.getCourseName());
+                dto.setTeacherUsername(course.getTeacherUsername());
+                dto.setClassCode(course.getClassCode());
+                dto.setLocation(course.getLocation());
+                dto.setCourseDate(course.getCourseDate());
+                dto.setTimeSlot(course.getTimeSlot());
+                
+                // 获取教师信息
+                QueryWrapper<User> teacherQuery = new QueryWrapper<>();
+                teacherQuery.eq("username", course.getTeacherUsername());
+                User teacher = userMapper.selectOne(teacherQuery);
+                dto.setTeacherName(teacher != null ? teacher.getName() : "未知教师");
+                
+                // 获取班级信息
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.eq("class_code", course.getClassCode());
+                Class clazz = classMapper.selectOne(classQuery);
+                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                
+                return dto;
+            }).collect(Collectors.toList());
+            
+        } catch (Exception e) {
+            throw new RuntimeException("按日期查询学生课程失败: " + e.getMessage());
+        }
+    }
 }

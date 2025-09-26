@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -381,7 +382,7 @@ public class TeacherService {
     }
     
     /**
-     * 获取老师的学生列表
+     * 获取老师的学生列表（班级中的学生 + 签到过的学生）
      */
     public List<StudentInfoDto> getTeacherStudents(String teacherCode) {
         try {
@@ -394,7 +395,18 @@ public class TeacherService {
                 return new ArrayList<>();
             }
             
-            // 2. 获取这些课程的所有签到学生
+            // 2. 获取这些课程对应的所有课程代码
+            List<String> courseCodes = courses.stream()
+                    .map(Course::getClassCode)
+                    .distinct()
+                    .collect(Collectors.toList());
+            
+            // 3. 获取这些课程中绑定的学生
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.in("class_code", courseCodes);
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            // 4. 获取这些课程的所有签到学生
             List<String> courseIds = courses.stream()
                     .map(Course::getCourseId)
                     .collect(Collectors.toList());
@@ -403,38 +415,84 @@ public class TeacherService {
             attendanceQuery.in("course_id", courseIds);
             List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
             
-            // 3. 转换为DTO
-            return attendanceRecords.stream()
-                    .map(record -> {
+            // 5. 合并两类学生（去重）
+            Set<String> studentCodes = new HashSet<>();
+            
+            // 添加班级中的学生
+            relations.forEach(relation -> studentCodes.add(relation.getStudentUsername()));
+            
+            // 添加签到过的学生
+            attendanceRecords.forEach(record -> studentCodes.add(record.getStudentUsername()));
+            
+            // 6. 转换为DTO
+            return studentCodes.stream()
+                    .map(studentCode -> {
                         StudentInfoDto dto = new StudentInfoDto();
-                        dto.setStudentCode(record.getStudentUsername());
+                        dto.setStudentCode(studentCode);
                         
                         // 获取学生信息
                         QueryWrapper<User> userQuery = new QueryWrapper<>();
-                        userQuery.eq("username", record.getStudentUsername());
+                        userQuery.eq("username", studentCode);
                         User user = userMapper.selectOne(userQuery);
                         dto.setStudentName(user != null ? user.getName() : "未知学生");
                         
-                        // 获取课程信息以确定班级
-                        QueryWrapper<Course> courseInfoQuery = new QueryWrapper<>();
-                        courseInfoQuery.eq("course_id", record.getCourseId());
-                        Course course = courseMapper.selectOne(courseInfoQuery);
-                        if (course != null) {
-                            dto.setClassCode(course.getClassCode());
+                        // 优先从班级绑定关系获取班级信息
+                        StudentClassRelation relation = relations.stream()
+                                .filter(r -> r.getStudentUsername().equals(studentCode))
+                                .findFirst()
+                                .orElse(null);
+                        
+                        if (relation != null) {
+                            dto.setClassCode(relation.getClassCode());
                             
-                            // 获取班级信息
-                            QueryWrapper<Class> classQuery = new QueryWrapper<>();
-                            classQuery.eq("class_code", course.getClassCode());
-                            Class clazz = classMapper.selectOne(classQuery);
-                            dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                            // 从课程信息获取班级信息
+                            Course course = courses.stream()
+                                    .filter(c -> c.getClassCode().equals(relation.getClassCode()))
+                                    .findFirst()
+                                    .orElse(null);
+                            
+                            if (course != null) {
+                                // 获取班级信息
+                                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                                classQuery.eq("class_code", course.getClassCode());
+                                Class clazz = classMapper.selectOne(classQuery);
+                                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                            } else {
+                                dto.setClassName("未知班级");
+                            }
                         } else {
-                            dto.setClassCode("未知");
-                            dto.setClassName("未知班级");
+                            // 如果没有班级绑定，从课程信息推断班级
+                            AttendanceRecord record = attendanceRecords.stream()
+                                    .filter(r -> r.getStudentUsername().equals(studentCode))
+                                    .findFirst()
+                                    .orElse(null);
+                            
+                            if (record != null) {
+                                Course course = courses.stream()
+                                        .filter(c -> c.getCourseId().equals(record.getCourseId()))
+                                        .findFirst()
+                                        .orElse(null);
+                                
+                                if (course != null) {
+                                    dto.setClassCode(course.getClassCode());
+                                    
+                                    // 获取班级信息
+                                    QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                                    classQuery.eq("class_code", course.getClassCode());
+                                    Class clazz = classMapper.selectOne(classQuery);
+                                    dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                                } else {
+                                    dto.setClassCode("未知");
+                                    dto.setClassName("未知班级");
+                                }
+                            } else {
+                                dto.setClassCode("未知");
+                                dto.setClassName("未知班级");
+                            }
                         }
                         
                         return dto;
                     })
-                    .distinct()
                     .collect(Collectors.toList());
             
         } catch (Exception e) {

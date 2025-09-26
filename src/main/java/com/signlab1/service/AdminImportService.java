@@ -161,13 +161,66 @@ public class AdminImportService {
                 
                 try {
                     Course course = new Course();
-                    course.setClassCode(getCellValue(row.getCell(0))); // 班级代码
+                    
+                    // 根据班级名称查找班级编号，作为课程代码
+                    String className = getCellValue(row.getCell(0)); // 班级名称
+                    QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                    classQuery.eq("class_name", className);
+                    Class clazz = classMapper.selectOne(classQuery);
+                    
+                    if (clazz != null) {
+                        course.setClassCode(clazz.getClassCode()); // 使用班级编号作为课程代码
+                    } else {
+                        // 如果班级不存在，创建新班级
+                        Class newClass = new Class();
+                        newClass.setClassName(className);
+                        newClass.setClassCode(generateClassCode());
+                        newClass.setVerificationCode(generateVerificationCode());
+                        newClass.setStudentCount(0);
+                        newClass.setCreateTime(LocalDateTime.now());
+                        newClass.setUpdateTime(LocalDateTime.now());
+                        newClass.setIsDeleted(0);
+                        
+                        classMapper.insert(newClass);
+                        course.setClassCode(newClass.getClassCode());
+                        System.out.println("创建新班级: " + className + ", 班级编号: " + newClass.getClassCode());
+                    }
+                    
                     course.setCourseName(getCellValue(row.getCell(1))); // 课程名称
-                    course.setTeacherUsername(getCellValue(row.getCell(2))); // 教师工号
-                    // 跳过第3列：任课教师（仅用于显示）
+                    String teacherUsername = getCellValue(row.getCell(2)); // 教师工号
+                    String teacherName = getCellValue(row.getCell(3)); // 任课教师姓名
+                    course.setTeacherUsername(teacherUsername);
                     course.setCourseDate(getCellValue(row.getCell(4))); // 上课日期
                     course.setTimeSlot(getCellValue(row.getCell(5))); // 时间段
                     course.setLocation(getCellValue(row.getCell(6))); // 上课地点
+                    
+                    // 检查并创建教师用户
+                    if (!teacherUsername.isEmpty()) {
+                        QueryWrapper<User> teacherQuery = new QueryWrapper<>();
+                        teacherQuery.eq("username", teacherUsername);
+                        User existingTeacher = userMapper.selectOne(teacherQuery);
+                        
+                        if (existingTeacher == null) {
+                            // 创建新教师用户
+                            User newTeacher = new User();
+                            newTeacher.setUsername(teacherUsername);
+                            newTeacher.setName(teacherName.isEmpty() ? "教师" + teacherUsername : teacherName);
+                            newTeacher.setRole("teacher");
+                            
+                            // 设置密码为后四位
+                            String password = teacherUsername.length() >= 4 ? 
+                                teacherUsername.substring(teacherUsername.length() - 4) : teacherUsername;
+                            newTeacher.setPassword(password);
+                            newTeacher.setPasswordSet(1); // 已设置密码
+                            
+                            newTeacher.setCreateTime(LocalDateTime.now());
+                            newTeacher.setUpdateTime(LocalDateTime.now());
+                            newTeacher.setIsDeleted(0);
+                            
+                            userMapper.insert(newTeacher);
+                            System.out.println("创建新教师用户: " + teacherUsername + " - " + newTeacher.getName() + " - 密码: " + password);
+                        }
+                    }
                     
                     // 生成课程ID：KC + 年份后2位 + 6位自增数
                     String year = String.valueOf(LocalDateTime.now().getYear()).substring(2);
@@ -267,7 +320,7 @@ public class AdminImportService {
                         if (course == null) {
                             course = new Class();
                             course.setClassName(courseName);
-                            course.setClassCode(generateCourseCode());
+                            course.setClassCode(generateClassCode());
                             course.setVerificationCode(generateVerificationCode());
                             course.setStudentCount(0);
                             course.setCreateTime(LocalDateTime.now());
@@ -275,7 +328,7 @@ public class AdminImportService {
                             
                             classMapper.insert(course);
                             courseCount++;
-                            System.out.println("创建新课程: " + courseName + ", 课程编号: " + course.getClassCode());
+                            System.out.println("创建新班级: " + courseName + ", 班级编号: " + course.getClassCode());
                         }
                         
                         processedCourses.put(courseName, course);
@@ -431,17 +484,69 @@ public class AdminImportService {
                 if (row == null) continue;
                 
                 try {
-                    String classCode = getCellValue(row.getCell(0));
+                    String className = getCellValue(row.getCell(0)); // 班级名称
                     String courseName = getCellValue(row.getCell(1));
                     String teacherEmployeeId = getCellValue(row.getCell(2));
-                    // 跳过第3列：任课教师（仅用于显示）
+                    String teacherName = getCellValue(row.getCell(3)); // 任课教师姓名
                     String courseDate = getCellValue(row.getCell(4));
                     String timeSlot = getCellValue(row.getCell(5));
                     String location = getCellValue(row.getCell(6));
                     
-                    if (courseName.isEmpty() || classCode.isEmpty() || courseDate.isEmpty() || timeSlot.isEmpty()) {
+                    if (courseName.isEmpty() || className.isEmpty() || courseDate.isEmpty() || timeSlot.isEmpty()) {
                         errorCount++;
                         continue;
+                    }
+                    
+                    // 根据班级名称查找班级编号
+                    QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                    classQuery.eq("class_name", className);
+                    Class clazz = classMapper.selectOne(classQuery);
+                    
+                    String classCode;
+                    if (clazz != null) {
+                        classCode = clazz.getClassCode(); // 使用现有班级编号
+                    } else {
+                        // 如果班级不存在，创建新班级
+                        Class newClass = new Class();
+                        newClass.setClassName(className);
+                        newClass.setClassCode(generateClassCode());
+                        newClass.setVerificationCode(generateVerificationCode());
+                        newClass.setStudentCount(0);
+                        newClass.setCreateTime(LocalDateTime.now());
+                        newClass.setUpdateTime(LocalDateTime.now());
+                        newClass.setIsDeleted(0);
+                        
+                        classMapper.insert(newClass);
+                        classCode = newClass.getClassCode();
+                        System.out.println("创建新班级: " + className + ", 班级编号: " + classCode);
+                    }
+                    
+                    // 检查并创建教师用户
+                    if (!teacherEmployeeId.isEmpty()) {
+                        QueryWrapper<User> teacherQuery = new QueryWrapper<>();
+                        teacherQuery.eq("username", teacherEmployeeId);
+                        User existingTeacher = userMapper.selectOne(teacherQuery);
+                        
+                        if (existingTeacher == null) {
+                            // 创建新教师用户
+                            User newTeacher = new User();
+                            newTeacher.setUsername(teacherEmployeeId);
+                            newTeacher.setName(teacherName.isEmpty() ? "教师" + teacherEmployeeId : teacherName);
+                            newTeacher.setRole("teacher");
+                            
+                            // 设置密码为后四位
+                            String password = teacherEmployeeId.length() >= 4 ? 
+                                teacherEmployeeId.substring(teacherEmployeeId.length() - 4) : teacherEmployeeId;
+                            newTeacher.setPassword(password);
+                            newTeacher.setPasswordSet(1); // 已设置密码
+                            
+                            newTeacher.setCreateTime(LocalDateTime.now());
+                            newTeacher.setUpdateTime(LocalDateTime.now());
+                            newTeacher.setIsDeleted(0);
+                            
+                            userMapper.insert(newTeacher);
+                            System.out.println("创建新教师用户: " + teacherEmployeeId + " - " + newTeacher.getName() + " - 密码: " + password);
+                        }
                     }
                     
                     // 生成课程ID
@@ -451,7 +556,7 @@ public class AdminImportService {
                     course.setCourseId(courseId);
                     course.setCourseName(courseName);
                     course.setTeacherUsername(teacherEmployeeId);
-                    course.setClassCode(classCode);
+                    course.setClassCode(classCode); // 存储班级编号，不是班级名称
                     course.setLocation(location);
                     course.setCourseDate(courseDate);
                     course.setTimeSlot(timeSlot);
@@ -492,9 +597,9 @@ public class AdminImportService {
     }
     
     /**
-     * 生成课程编号
+     * 生成班级编号
      */
-    private String generateCourseCode() {
+    private String generateClassCode() {
         long timestamp = System.currentTimeMillis();
         String timestampStr = String.valueOf(timestamp);
         String last6Digits = timestampStr.substring(timestampStr.length() - 6);
@@ -502,7 +607,7 @@ public class AdminImportService {
         Random random = new Random();
         int randomNum = random.nextInt(100);
         
-        return "KC" + last6Digits + String.format("%02d", randomNum);
+        return "CL" + last6Digits + String.format("%02d", randomNum);
     }
     
     /**

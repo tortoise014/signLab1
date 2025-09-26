@@ -31,7 +31,7 @@ public class ExcelTemplateService {
         
         // 创建标题行 - 根据您提供的第二个表格格式
         Row headerRow = sheet.createRow(0);
-        String[] headers = {"班级代码", "课程名称", "教师工号", "任课教师", "上课日期", "时间段", "上课地点"};
+        String[] headers = {"班级名称", "课程名称", "教师工号", "任课教师", "上课日期", "时间段", "上课地点"};
         
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
@@ -79,7 +79,7 @@ public class ExcelTemplateService {
         }
         
         // 设置列宽
-        sheet.setColumnWidth(0, 15 * 256); // 班级代码
+        sheet.setColumnWidth(0, 15 * 256); // 班级名称
         sheet.setColumnWidth(1, 20 * 256); // 课程名称
         sheet.setColumnWidth(2, 15 * 256); // 教师工号
         sheet.setColumnWidth(3, 15 * 256); // 任课教师
@@ -94,7 +94,7 @@ public class ExcelTemplateService {
         
         Row noteRow2 = sheet.createRow(sampleData.length + 4);
         Cell noteCell2 = noteRow2.createCell(0);
-        noteCell2.setCellValue("1. 班级代码：如工程实践B01，必须与班级表中的代码一致");
+        noteCell2.setCellValue("1. 班级名称：如工程实践B01，系统会自动查找或创建对应班级");
         
         Row noteRow3 = sheet.createRow(sampleData.length + 5);
         Cell noteCell3 = noteRow3.createCell(0);

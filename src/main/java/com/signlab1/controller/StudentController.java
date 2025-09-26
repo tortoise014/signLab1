@@ -334,4 +334,52 @@ public class StudentController {
                 return "application/octet-stream";
         }
     }
+    
+    /**
+     * 获取学生的所有课程
+     */
+    @GetMapping("/courses")
+    public ApiResponse<List<CourseInfoDto>> getStudentCourses() {
+        try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ApiResponse.error(401, "未登录，请先登录");
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ApiResponse.error(401, "用户信息获取失败，请重新登录");
+            }
+            
+            List<CourseInfoDto> courses = studentService.getStudentCourses(studentCode);
+            return ApiResponse.success(courses, "获取课程列表成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取课程列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 按日期查询学生的课程
+     */
+    @GetMapping("/courses/date/{date}")
+    public ApiResponse<List<CourseInfoDto>> getStudentCoursesByDate(@PathVariable String date) {
+        try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ApiResponse.error(401, "未登录，请先登录");
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ApiResponse.error(401, "用户信息获取失败，请重新登录");
+            }
+            
+            List<CourseInfoDto> courses = studentService.getStudentCoursesByDate(studentCode, date);
+            return ApiResponse.success(courses, "按日期查询课程成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "按日期查询课程失败: " + e.getMessage());
+        }
+    }
 }

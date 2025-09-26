@@ -24,6 +24,21 @@ public class CourseInfoDto {
     private String className;
     
     /**
+     * 班级代码
+     */
+    private String classCode;
+    
+    /**
+     * 教师用户名
+     */
+    private String teacherUsername;
+    
+    /**
+     * 教师姓名
+     */
+    private String teacherName;
+    
+    /**
      * 上课时间段
      */
     private String timeSlot;
