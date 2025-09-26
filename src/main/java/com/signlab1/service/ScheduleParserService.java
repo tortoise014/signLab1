@@ -119,7 +119,6 @@ public class ScheduleParserService {
             course.setLocation(location);
             course.setCourseDate(courseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             course.setTimeSlot(timeSlot);
-            course.setWeekNumber(weekNumber);
             course.setCreateTime(java.time.LocalDateTime.now());
             course.setUpdateTime(java.time.LocalDateTime.now());
             

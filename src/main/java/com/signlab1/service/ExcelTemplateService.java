@@ -29,9 +29,9 @@ public class ExcelTemplateService {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("课程数据");
         
-        // 创建标题行
+        // 创建标题行 - 根据您提供的第二个表格格式
         Row headerRow = sheet.createRow(0);
-        String[] headers = {"课程名称", "授课老师工号", "上课班级", "上课地点", "课程日期", "上课时间段", "课程周次"};
+        String[] headers = {"班级代码", "课程名称", "教师工号", "任课教师", "上课日期", "时间段", "上课地点"};
         
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
@@ -52,14 +52,14 @@ public class ExcelTemplateService {
             cell.setCellStyle(headerStyle);
         }
         
-        // 添加示例数据 - 基于您的实际课程格式
-        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        // 添加示例数据 - 基于您提供的第二个表格格式
         String[][] sampleData = {
-            {"工程实践B", "00005642", "工程实践B18", "实验4-211", today, "08:00-11:40", "5"},
-            {"工程实践B", "00005642", "工程实践B18", "实验3-404", today, "14:00-17:40", "8"},
-            {"数据结构与算法", "T001", "计算机2021-1班", "教学楼A101", today, "08:00-09:40", "1"},
-            {"Java程序设计", "T002", "计算机2021-2班", "教学楼B201", today, "10:00-11:40", "1"},
-            {"数据库原理", "T001", "软件2022-1班", "教学楼C301", today, "14:00-15:40", "1"}
+            {"工程实践B01", "理论", "00005642", "梁祖红", "2024-09-30", "上午", "实验4-215"},
+            {"工程实践B01", "物理2", "00006366", "庞玮", "2024-10-14", "上午", "实验4-510"},
+            {"工程实践B01", "A组工训1", "", "欧伟程", "2024-10-21", "上午", "实验3-106"},
+            {"工程实践B01", "B组工训2", "", "黄亚军", "2024-10-21", "下午", "实验3-106"},
+            {"工程实践B01", "电工1", "00008528", "刘跃生", "2024-11-04", "下午", "实验4-205"},
+            {"工程实践B01", "电工3", "", "曾思明", "2024-11-18", "下午", "实验3-313"}
         };
         
         for (int i = 0; i < sampleData.length; i++) {
@@ -79,13 +79,13 @@ public class ExcelTemplateService {
         }
         
         // 设置列宽
-        sheet.setColumnWidth(0, 25 * 256); // 课程名称
-        sheet.setColumnWidth(1, 18 * 256); // 授课老师工号
-        sheet.setColumnWidth(2, 15 * 256); // 上课班级
-        sheet.setColumnWidth(3, 20 * 256); // 上课地点
-        sheet.setColumnWidth(4, 15 * 256); // 课程日期
-        sheet.setColumnWidth(5, 18 * 256); // 上课时间段
-        sheet.setColumnWidth(6, 15 * 256); // 课程周次
+        sheet.setColumnWidth(0, 15 * 256); // 班级代码
+        sheet.setColumnWidth(1, 20 * 256); // 课程名称
+        sheet.setColumnWidth(2, 15 * 256); // 教师工号
+        sheet.setColumnWidth(3, 15 * 256); // 任课教师
+        sheet.setColumnWidth(4, 15 * 256); // 上课日期
+        sheet.setColumnWidth(5, 12 * 256); // 时间段
+        sheet.setColumnWidth(6, 20 * 256); // 上课地点
         
         // 添加说明
         Row noteRow = sheet.createRow(sampleData.length + 3);
@@ -94,27 +94,23 @@ public class ExcelTemplateService {
         
         Row noteRow2 = sheet.createRow(sampleData.length + 4);
         Cell noteCell2 = noteRow2.createCell(0);
-        noteCell2.setCellValue("1. 授课老师工号：支持00005642格式，必须是已导入的老师工号");
+        noteCell2.setCellValue("1. 班级代码：如工程实践B01，必须与班级表中的代码一致");
         
         Row noteRow3 = sheet.createRow(sampleData.length + 5);
         Cell noteCell3 = noteRow3.createCell(0);
-        noteCell3.setCellValue("2. 上课班级：使用班级名称，如'工程实践B18'、'计算机2021-1班'");
+        noteCell3.setCellValue("2. 教师工号：如00005642，可以为空（系统会自动创建教师账号）");
         
         Row noteRow4 = sheet.createRow(sampleData.length + 6);
         Cell noteCell4 = noteRow4.createCell(0);
-        noteCell4.setCellValue("3. 课程日期：格式为yyyy-MM-dd，如2024-01-15");
+        noteCell4.setCellValue("3. 上课日期：格式为yyyy-MM-dd，如2024-09-30");
         
         Row noteRow5 = sheet.createRow(sampleData.length + 7);
         Cell noteCell5 = noteRow5.createCell(0);
-        noteCell5.setCellValue("4. 上课时间段：格式为HH:mm-HH:mm，如08:00-11:40");
+        noteCell5.setCellValue("4. 时间段：上午、下午、晚上");
         
         Row noteRow6 = sheet.createRow(sampleData.length + 8);
         Cell noteCell6 = noteRow6.createCell(0);
-        noteCell6.setCellValue("5. 课程周次：对应学生课表中的周次，如5周、8周");
-        
-        Row noteRow7 = sheet.createRow(sampleData.length + 9);
-        Cell noteCell7 = noteRow7.createCell(0);
-        noteCell7.setCellValue("6. 系统会自动生成课程ID（格式：KC+年份后2位+6位自增数）");
+        noteCell6.setCellValue("5. 系统会自动生成课程ID（格式：KC+年份后2位+6位自增数）");
         
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         workbook.write(outputStream);
@@ -130,9 +126,9 @@ public class ExcelTemplateService {
         Workbook workbook = new XSSFWorkbook();
         Sheet sheet = workbook.createSheet("学生数据");
         
-        // 创建标题行 - 根据您的实际Excel文件格式
+        // 创建标题行 - 根据您提供的第一个表格格式
         Row headerRow = sheet.createRow(0);
-        String[] headers = {"班级名称", "学号", "姓名", "院系", "专业", "任课教师", "上课时间地点"};
+        String[] headers = {"班级代码", "学号", "姓名", "院系", "专业"};
         
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
@@ -153,11 +149,12 @@ public class ExcelTemplateService {
             cell.setCellStyle(headerStyle);
         }
         
-        // 添加示例数据 - 基于您的实际数据格式
+        // 添加示例数据 - 基于您提供的第一个表格格式
         String[][] sampleData = {
-            {"工程实践B18", "2112504510", "张三", "自动化学院", "085801 电气工程", "陈灵敏,李水峰", "5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404"},
-            {"工程实践B18", "2112504511", "李四", "自动化学院", "085801 电气工程", "陈灵敏,李水峰", "5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404"},
-            {"工程实践B18", "2112504512", "王五", "自动化学院", "085801 电气工程", "陈灵敏,李水峰", "5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404"}
+            {"工程实践B01", "2112503179", "王琛", "信息工程学院", "085402 通信工程"},
+            {"工程实践B01", "2112503180", "林佳鑫", "信息工程学院", "085402 通信工程"},
+            {"工程实践B01", "2112503181", "秦子桐", "信息工程学院", "085402 通信工程"},
+            {"工程实践B01", "2112503219", "邱振邦", "卓越工程师学院", "085402 通信工程"}
         };
         
         for (int i = 0; i < sampleData.length; i++) {
@@ -177,13 +174,11 @@ public class ExcelTemplateService {
         }
         
         // 设置列宽
-        sheet.setColumnWidth(0, 15 * 256); // 班级名称
+        sheet.setColumnWidth(0, 15 * 256); // 班级代码
         sheet.setColumnWidth(1, 15 * 256); // 学号
         sheet.setColumnWidth(2, 10 * 256); // 姓名
-        sheet.setColumnWidth(3, 15 * 256); // 院系
-        sheet.setColumnWidth(4, 20 * 256); // 专业
-        sheet.setColumnWidth(5, 25 * 256); // 任课教师
-        sheet.setColumnWidth(6, 80 * 256); // 上课时间地点
+        sheet.setColumnWidth(3, 20 * 256); // 院系
+        sheet.setColumnWidth(4, 25 * 256); // 专业
         
         // 添加说明
         Row noteRow = sheet.createRow(sampleData.length + 3);
@@ -192,19 +187,19 @@ public class ExcelTemplateService {
         
         Row noteRow2 = sheet.createRow(sampleData.length + 4);
         Cell noteCell2 = noteRow2.createCell(0);
-        noteCell2.setCellValue("1. 学号：10位数字，如2112504510");
+        noteCell2.setCellValue("1. 班级代码：如工程实践B01，用于关联班级");
         
         Row noteRow3 = sheet.createRow(sampleData.length + 5);
         Cell noteCell3 = noteRow3.createCell(0);
-        noteCell3.setCellValue("2. 任课教师：多个老师用逗号分隔");
+        noteCell3.setCellValue("2. 学号：10位数字，如2112503179");
         
         Row noteRow4 = sheet.createRow(sampleData.length + 6);
         Cell noteCell4 = noteRow4.createCell(0);
-        noteCell4.setCellValue("3. 上课时间地点：系统会自动解析并生成课程");
+        noteCell4.setCellValue("3. 院系：如信息工程学院、卓越工程师学院");
         
         Row noteRow5 = sheet.createRow(sampleData.length + 7);
         Cell noteCell5 = noteRow5.createCell(0);
-        noteCell5.setCellValue("4. 格式示例：5周 星期二[6-9节]实验4-211;8周 星期二[1-4节]实验3-404");
+        noteCell5.setCellValue("4. 专业：如085402 通信工程");
         
         Row noteRow6 = sheet.createRow(sampleData.length + 8);
         Cell noteCell6 = noteRow6.createCell(0);
@@ -357,7 +352,6 @@ public class ExcelTemplateService {
             courseData.setLocation(location);
             courseData.setCourseDate(courseDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")));
             courseData.setTimeSlot(timeSlot);
-            courseData.setWeekNumber(weekNumber);
             
             return courseData;
             
@@ -377,7 +371,7 @@ public class ExcelTemplateService {
             
             // 创建标题行
             Row headerRow = sheet.createRow(0);
-            String[] headers = {"课程名称", "授课老师工号", "上课班级", "上课地点", "课程日期", "上课时间段", "课程周次"};
+            String[] headers = {"课程名称", "授课老师工号", "上课班级", "上课地点", "课程日期", "上课时间段"};
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
@@ -394,7 +388,6 @@ public class ExcelTemplateService {
                 row.createCell(3).setCellValue(courseData.getLocation());
                 row.createCell(4).setCellValue(courseData.getCourseDate());
                 row.createCell(5).setCellValue(courseData.getTimeSlot());
-                row.createCell(6).setCellValue(courseData.getWeekNumber());
             }
             
             // 自动调整列宽
@@ -427,7 +420,6 @@ public class ExcelTemplateService {
         private String location;
         private String courseDate;
         private String timeSlot;
-        private int weekNumber;
         
         // Getters and Setters
         public String getCourseName() { return courseName; }
@@ -447,9 +439,6 @@ public class ExcelTemplateService {
         
         public String getTimeSlot() { return timeSlot; }
         public void setTimeSlot(String timeSlot) { this.timeSlot = timeSlot; }
-        
-        public int getWeekNumber() { return weekNumber; }
-        public void setWeekNumber(int weekNumber) { this.weekNumber = weekNumber; }
     }
     
     /**

@@ -46,6 +46,12 @@ public class ClassPhoto {
     private String photoPath;
     
     /**
+     * 压缩图存储路径
+     */
+    @TableField("compressed_photo_path")
+    private String compressedPhotoPath;
+    
+    /**
      * 照片备注
      */
     @TableField("remark")

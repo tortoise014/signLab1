@@ -35,6 +35,7 @@ public class StudentService {
     private final ClassPhotoMapper classPhotoMapper;
     private final QrCodeUtil qrCodeUtil;
     private final FileUploadUtil fileUploadUtil;
+    private final WordDocumentService wordDocumentService;
     
     /**
      * 扫码签到
@@ -292,6 +293,7 @@ public class StudentService {
             classPhoto.setStudentUsername(studentCode);
             classPhoto.setPhotoName(uploadResult.getFileName());
             classPhoto.setPhotoPath(uploadResult.getFilePath());
+            classPhoto.setCompressedPhotoPath(uploadResult.getCompressedFilePath());
             classPhoto.setRemark(remark);
             classPhoto.setFileSize(uploadResult.getFileSize());
             classPhoto.setUploadTime(uploadResult.getUploadTime());
@@ -439,5 +441,12 @@ public class StudentService {
      */
     public ClassPhoto getClassPhotoById(Long photoId) {
         return classPhotoMapper.selectById(photoId);
+    }
+    
+    /**
+     * 生成课堂笔记Word文档
+     */
+    public byte[] generateClassNotesDocument(String studentCode, String courseId) {
+        return wordDocumentService.generateClassNotesDocument(studentCode, courseId);
     }
 }

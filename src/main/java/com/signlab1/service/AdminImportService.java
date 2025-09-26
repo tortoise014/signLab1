@@ -161,13 +161,13 @@ public class AdminImportService {
                 
                 try {
                     Course course = new Course();
-                    course.setCourseName(getCellValue(row.getCell(0))); // 课程名称
-                    course.setTeacherUsername(getCellValue(row.getCell(1))); // 授课老师用户名
-                    course.setClassCode(getCellValue(row.getCell(2))); // 上课班级
-                    course.setLocation(getCellValue(row.getCell(3))); // 上课地点
-                    course.setCourseDate(getCellValue(row.getCell(4))); // 课程日期
-                    course.setTimeSlot(getCellValue(row.getCell(5))); // 上课时间段
-                    course.setWeekNumber(Integer.parseInt(getCellValue(row.getCell(6)))); // 课程周次
+                    course.setClassCode(getCellValue(row.getCell(0))); // 班级代码
+                    course.setCourseName(getCellValue(row.getCell(1))); // 课程名称
+                    course.setTeacherUsername(getCellValue(row.getCell(2))); // 教师工号
+                    // 跳过第3列：任课教师（仅用于显示）
+                    course.setCourseDate(getCellValue(row.getCell(4))); // 上课日期
+                    course.setTimeSlot(getCellValue(row.getCell(5))); // 时间段
+                    course.setLocation(getCellValue(row.getCell(6))); // 上课地点
                     
                     // 生成课程ID：KC + 年份后2位 + 6位自增数
                     String year = String.valueOf(LocalDateTime.now().getYear()).substring(2);
@@ -431,11 +431,13 @@ public class AdminImportService {
                 if (row == null) continue;
                 
                 try {
-                    String courseName = getCellValue(row.getCell(0));
-                    String classCode = getCellValue(row.getCell(1));
-                    String location = getCellValue(row.getCell(2));
-                    String courseDate = getCellValue(row.getCell(3));
-                    String timeSlot = getCellValue(row.getCell(4));
+                    String classCode = getCellValue(row.getCell(0));
+                    String courseName = getCellValue(row.getCell(1));
+                    String teacherEmployeeId = getCellValue(row.getCell(2));
+                    // 跳过第3列：任课教师（仅用于显示）
+                    String courseDate = getCellValue(row.getCell(4));
+                    String timeSlot = getCellValue(row.getCell(5));
+                    String location = getCellValue(row.getCell(6));
                     
                     if (courseName.isEmpty() || classCode.isEmpty() || courseDate.isEmpty() || timeSlot.isEmpty()) {
                         errorCount++;
@@ -448,7 +450,7 @@ public class AdminImportService {
                     Course course = new Course();
                     course.setCourseId(courseId);
                     course.setCourseName(courseName);
-                    course.setTeacherUsername(teacherCode);
+                    course.setTeacherUsername(teacherEmployeeId);
                     course.setClassCode(classCode);
                     course.setLocation(location);
                     course.setCourseDate(courseDate);

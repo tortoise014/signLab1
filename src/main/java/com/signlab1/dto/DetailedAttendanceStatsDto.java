@@ -46,7 +46,6 @@ public class DetailedAttendanceStatsDto {
         private String location;
         private String courseDate;
         private String timeSlot;
-        private Integer weekNumber;
     }
     
     /**

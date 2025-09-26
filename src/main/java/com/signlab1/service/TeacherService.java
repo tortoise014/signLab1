@@ -62,7 +62,7 @@ public class TeacherService {
             User teacher = userMapper.selectOne(userQuery);
             
             if (teacher == null) {
-                throw new RuntimeException("用户不存在: " + teacherUsername);
+                throw new RuntimeException("权限不足，无法访问该资源");
             }
             
             String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
@@ -511,7 +511,6 @@ public class TeacherService {
             courseInfo.setLocation(course.getLocation());
             courseInfo.setCourseDate(course.getCourseDate());
             courseInfo.setTimeSlot(course.getTimeSlot());
-            courseInfo.setWeekNumber(course.getWeekNumber());
             result.setCourseInfo(courseInfo);
             
             // 设置班级信息

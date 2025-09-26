@@ -59,11 +59,6 @@ public class Course {
     @TableField("time_slot")
     private String timeSlot;
     
-    /**
-     * 课程周次
-     */
-    @TableField("week_number")
-    private Integer weekNumber;
     
     /**
      * 创建时间

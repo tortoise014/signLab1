@@ -12,7 +12,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -274,6 +273,44 @@ public class StudentController {
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(fileContent);
+                    
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+    
+    /**
+     * 生成并下载课堂笔记Word文档
+     */
+    @GetMapping("/notes/word/{courseId}")
+    public ResponseEntity<byte[]> downloadClassNotesWord(@PathVariable String courseId) {
+        try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ResponseEntity.status(401).build();
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ResponseEntity.status(401).build();
+            }
+            
+            // 生成Word文档
+            byte[] wordBytes = studentService.generateClassNotesDocument(studentCode, courseId);
+            
+            // 设置响应头
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"));
+            headers.setContentLength(wordBytes.length);
+            
+            // 生成文件名
+            String fileName = "课堂笔记_" + courseId + "_" + studentCode + ".docx";
+            headers.set("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+            
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(wordBytes);
                     
         } catch (Exception e) {
             return ResponseEntity.internalServerError().build();

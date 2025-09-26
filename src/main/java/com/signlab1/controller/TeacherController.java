@@ -31,14 +31,43 @@ public class TeacherController {
     private final ExcelTemplateService excelTemplateService;
     
     /**
+     * 检查当前用户是否为教师角色
+     */
+    private ApiResponse<String> checkTeacherPermission() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null) {
+            return ApiResponse.error(401, "未登录，请先登录");
+        }
+        
+        // 检查用户角色是否为教师
+        boolean isTeacher = authentication.getAuthorities().stream()
+                .anyMatch(authority -> authority.getAuthority().equals("ROLE_TEACHER"));
+        
+        if (!isTeacher) {
+            return ApiResponse.error(403, "权限不足，只有教师可以访问此功能");
+        }
+        
+        String teacherUsername = authentication.getName();
+        if (teacherUsername == null || teacherUsername.isEmpty()) {
+            return ApiResponse.error(401, "用户信息获取失败，请重新登录");
+        }
+        
+        return ApiResponse.success(teacherUsername, "权限验证通过");
+    }
+    
+    /**
      * 获取老师今日课程
      */
     @GetMapping("/courses")
     public ApiResponse<List<CourseInfoDto>> getTodayCourses() {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherUsername = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
             
             List<CourseInfoDto> courses = teacherService.getTodayCourses(teacherUsername);
             
@@ -50,8 +79,8 @@ public class TeacherController {
             return ApiResponse.success(courses, "获取今日课程成功，共" + courses.size() + "门课程");
         } catch (Exception e) {
             // 根据异常类型返回不同的错误信息
-            if (e.getMessage().contains("用户不存在")) {
-                return ApiResponse.error(404, "教师用户不存在");
+            if (e.getMessage().contains("权限不足")) {
+                return ApiResponse.error(403, "权限不足，无法访问该资源");
             } else if (e.getMessage().contains("数据库")) {
                 return ApiResponse.error(500, "数据库查询异常，请稍后重试");
             } else {
@@ -66,9 +95,13 @@ public class TeacherController {
     @GetMapping("/courses/all")
     public ApiResponse<List<CourseInfoDto>> getAllCourses() {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherUsername = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
             
             List<CourseInfoDto> courses = teacherService.getAllCourses(teacherUsername);
             
@@ -78,8 +111,8 @@ public class TeacherController {
             
             return ApiResponse.success(courses, "获取所有课程成功，共" + courses.size() + "门课程");
         } catch (Exception e) {
-            if (e.getMessage().contains("用户不存在")) {
-                return ApiResponse.error(404, "教师用户不存在");
+            if (e.getMessage().contains("权限不足")) {
+                return ApiResponse.error(403, "权限不足，无法访问该资源");
             } else if (e.getMessage().contains("数据库")) {
                 return ApiResponse.error(500, "数据库查询异常，请稍后重试");
             } else {
@@ -94,9 +127,13 @@ public class TeacherController {
     @GetMapping("/courses/by-date")
     public ApiResponse<List<CourseInfoDto>> getCoursesByDate(@RequestParam String date) {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherUsername = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
             
             // 验证日期格式
             if (date == null || date.trim().isEmpty()) {
@@ -111,8 +148,8 @@ public class TeacherController {
             
             return ApiResponse.success(courses, "获取" + date + "课程成功，共" + courses.size() + "门课程");
         } catch (Exception e) {
-            if (e.getMessage().contains("用户不存在")) {
-                return ApiResponse.error(404, "教师用户不存在");
+            if (e.getMessage().contains("权限不足")) {
+                return ApiResponse.error(403, "权限不足，无法访问该资源");
             } else if (e.getMessage().contains("日期格式")) {
                 return ApiResponse.error(400, "日期格式错误，请使用yyyy-MM-dd格式");
             } else if (e.getMessage().contains("数据库")) {
@@ -129,6 +166,12 @@ public class TeacherController {
     @PostMapping("/attendance/qr")
     public ApiResponse<AttendanceQrDto> generateAttendanceQr(@RequestParam String courseId) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             AttendanceQrDto qrDto = teacherService.generateAttendanceQr(courseId);
             return ApiResponse.success(qrDto, "生成二维码成功");
         } catch (Exception e) {
@@ -142,6 +185,12 @@ public class TeacherController {
     @GetMapping("/attendance/stats")
     public ApiResponse<AttendanceStatsDto> getAttendanceStats(@RequestParam String courseId) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             AttendanceStatsDto stats = teacherService.getAttendanceStats(courseId);
             return ApiResponse.success(stats, "获取统计成功");
         } catch (Exception e) {
@@ -155,6 +204,12 @@ public class TeacherController {
     @GetMapping("/attendance/absent-students")
     public ApiResponse<List<String>> getAbsentStudents(@RequestParam String courseId) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             List<String> absentStudents = teacherService.getAbsentStudents(courseId);
             return ApiResponse.success(absentStudents, "获取未签到学生成功");
         } catch (Exception e) {
@@ -168,6 +223,12 @@ public class TeacherController {
     @GetMapping("/attendance/course/{courseId}")
     public ApiResponse<List<StudentAttendanceDto>> getCourseAttendance(@PathVariable String courseId) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             List<StudentAttendanceDto> attendance = teacherService.getCourseAttendance(courseId);
             return ApiResponse.success(attendance, "获取课程签到情况成功");
         } catch (Exception e) {
@@ -181,6 +242,12 @@ public class TeacherController {
     @PutMapping("/attendance/update")
     public ApiResponse<Void> updateStudentAttendance(@RequestBody UpdateAttendanceRequest request) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             teacherService.updateStudentAttendance(request.getCourseId(), request.getStudentCode(), request.getStatus());
             return ApiResponse.success(null, "签到状态更新成功");
         } catch (Exception e) {
@@ -194,9 +261,13 @@ public class TeacherController {
     @PostMapping("/import/students")
     public ApiResponse<String> importStudents(@RequestParam("file") MultipartFile file) {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherUsername = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
             
             String result = adminImportService.importStudentsForTeacher(file, teacherUsername);
             return ApiResponse.success(result, "学生数据导入成功");
@@ -211,9 +282,13 @@ public class TeacherController {
     @PostMapping("/import/courses")
     public ApiResponse<String> importCourses(@RequestParam("file") MultipartFile file) {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherUsername = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
             
             String result = adminImportService.importCoursesForTeacher(file, teacherUsername);
             return ApiResponse.success(result, "课程数据导入成功");
@@ -228,6 +303,12 @@ public class TeacherController {
     @GetMapping("/template/students")
     public ResponseEntity<byte[]> downloadStudentTemplate() {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ResponseEntity.status(permissionCheck.getCode()).build();
+            }
+            
             byte[] templateBytes = excelTemplateService.generateStudentTemplate();
             
             if (templateBytes == null || templateBytes.length == 0) {
@@ -277,6 +358,12 @@ public class TeacherController {
     @GetMapping("/template/courses")
     public ResponseEntity<byte[]> downloadCourseTemplate() {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ResponseEntity.status(permissionCheck.getCode()).build();
+            }
+            
             byte[] templateBytes = excelTemplateService.generateCourseTemplate();
             
             if (templateBytes == null || templateBytes.length == 0) {
@@ -326,9 +413,13 @@ public class TeacherController {
     @PostMapping("/template/courses-from-student")
     public ResponseEntity<byte[]> generateCourseTemplateFromStudent(@RequestParam("file") MultipartFile file) {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherCode = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ResponseEntity.status(permissionCheck.getCode()).build();
+            }
+            
+            String teacherCode = permissionCheck.getData();
             
             byte[] templateData = excelTemplateService.generateCourseTemplateFromStudentData(file, teacherCode);
             
@@ -354,9 +445,13 @@ public class TeacherController {
     @GetMapping("/students")
     public ApiResponse<List<StudentInfoDto>> getTeacherStudents() {
         try {
-            // 从SecurityContext获取当前登录老师的工号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            String teacherUsername = authentication.getName();
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
             
             List<StudentInfoDto> students = teacherService.getTeacherStudents(teacherUsername);
             return ApiResponse.success(students, "获取学生列表成功");
@@ -371,6 +466,12 @@ public class TeacherController {
     @GetMapping("/attendance/detailed-stats/{courseId}")
     public ApiResponse<DetailedAttendanceStatsDto> getDetailedAttendanceStats(@PathVariable String courseId) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             DetailedAttendanceStatsDto stats = teacherService.getDetailedAttendanceStats(courseId);
             return ApiResponse.success(stats, "获取详细签到统计成功");
         } catch (Exception e) {
@@ -384,6 +485,12 @@ public class TeacherController {
     @PutMapping("/students/update")
     public ApiResponse<Void> updateStudent(@RequestBody UpdateStudentRequest request) {
         try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
             teacherService.updateStudent(request);
             return ApiResponse.success(null, "学生信息更新成功");
         } catch (Exception e) {

@@ -46,6 +46,16 @@ public class ClassPhotoDto {
     private String photoUrl;
     
     /**
+     * 照片存储路径
+     */
+    private String photoPath;
+    
+    /**
+     * 压缩图存储路径
+     */
+    private String compressedPhotoPath;
+    
+    /**
      * 照片备注
      */
     private String remark;
