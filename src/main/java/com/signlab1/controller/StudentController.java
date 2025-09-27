@@ -254,8 +254,8 @@ public class StudentController {
                 return ResponseEntity.status(403).build();
             }
             
-            // 读取文件
-            Path filePath = Paths.get(photo.getPhotoPath());
+            // 读取文件 - 确保使用绝对路径
+            Path filePath = Paths.get(photo.getPhotoPath()).toAbsolutePath();
             if (!Files.exists(filePath)) {
                 return ResponseEntity.notFound().build();
             }

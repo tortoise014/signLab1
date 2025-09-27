@@ -31,10 +31,10 @@ mybatis-plus:
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# 本地存储路径配置
+# 开发环境文件存储路径配置
 file:
   upload:
-    path: /Users/tortoise/IdeaProjects/signLab1/uploads/signlab/
+    path: ./uploads/signlab/
     photo:
       path: ${file.upload.path}photos/
     document:

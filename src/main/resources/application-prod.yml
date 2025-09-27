@@ -2,54 +2,45 @@ spring:
   application:
     name: signLab1
   
+  # 生产环境数据库配置
   datasource:
     url: jdbc:mysql://43.139.186.204:3306/signlab1?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
-  
-  # Spring Boot文件上传配置
+    
+  # 文件上传配置
   servlet:
     multipart:
-      max-file-size: 50MB
-      max-request-size: 50MB
-      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
 
-# 文件上传配置
-file:
-  upload:
-    path: ./uploads/
-    photo:
-      path: ${file.upload.path}photos/
-    document:
-      path: ${file.upload.path}documents/
-
-# MyBatis Plus配置
+# MyBatis Plus 配置
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
-      id-type: auto
-      logic-delete-field: deleted
+      logic-delete-field: isDeleted
       logic-delete-value: 1
       logic-not-delete-value: 0
 
-# Actuator配置
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics
-  endpoint:
-    health:
-      show-details: when-authorized
+# 生产环境文件存储路径配置 - 使用绝对路径
+file:
+  upload:
+    path: /opt/signlab/uploads/
+    photo:
+      path: ${file.upload.path}photos/
+    document:
+      path: ${file.upload.path}documents/
 
-# 日志配置
-logging:
-  level:
-    com.signlab1: INFO
-    org.springframework.security: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+# JWT配置
+jwt:
+  secret: signlab2024secretkeyforsignlab2024secretkey
+  expiration: 86400
+
+# 服务器配置
+server:
+  port: 8085
+  address: 0.0.0.0  # 允许外部访问

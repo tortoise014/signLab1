@@ -47,8 +47,8 @@ public class FileUploadUtil {
             // 生成原图文件路径
             String originalFilePath = generatePhotoPath(courseId, studentUsername, file.getOriginalFilename(), "original");
             
-            // 创建原图目录
-            Path originalPath = Paths.get(originalFilePath);
+            // 创建原图目录 - 确保使用绝对路径
+            Path originalPath = Paths.get(originalFilePath).toAbsolutePath();
             Files.createDirectories(originalPath.getParent());
             
             // 保存原图
@@ -109,7 +109,7 @@ public class FileUploadUtil {
     
     /**
      * 生成照片存储路径
-     * 格式: uploads/signlab/photos/年/月/日/课程ID/学生学号/类型/时间戳.扩展名
+     * 格式: 绝对路径/年/月/日/课程ID/学生学号/类型/时间戳.扩展名
      */
     private String generatePhotoPath(String courseId, String studentUsername, String originalFilename, String type) {
         LocalDate now = LocalDate.now();
@@ -123,9 +123,19 @@ public class FileUploadUtil {
         String extension = getFileExtension(originalFilename);
         String fileName = String.format("%s_%s.%s", timestamp, randomCode, extension);
         
+        // 确保路径是绝对路径
+        Path basePath = Paths.get(photoUploadPath).toAbsolutePath();
+        
         // 构建完整路径：日期 -> 课程 -> 学号 -> 类型
-        return String.format("%s/%s/%s/%s/%s/%s/%s/%s", 
-            photoUploadPath, year, month, day, courseId, studentUsername, type, fileName);
+        Path fullPath = basePath.resolve(year)
+                              .resolve(month)
+                              .resolve(day)
+                              .resolve(courseId)
+                              .resolve(studentUsername)
+                              .resolve(type)
+                              .resolve(fileName);
+        
+        return fullPath.toString();
     }
     
     /**
@@ -187,7 +197,7 @@ public class FileUploadUtil {
      */
     public boolean deleteFile(String filePath) {
         try {
-            Path path = Paths.get(filePath);
+            Path path = Paths.get(filePath).toAbsolutePath();
             if (Files.exists(path)) {
                 Files.delete(path);
                 log.info("文件删除成功: {}", filePath);
@@ -206,7 +216,7 @@ public class FileUploadUtil {
      * 检查文件是否存在
      */
     public boolean fileExists(String filePath) {
-        return Files.exists(Paths.get(filePath));
+        return Files.exists(Paths.get(filePath).toAbsolutePath());
     }
     
     /**

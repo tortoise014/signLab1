@@ -123,7 +123,7 @@ public class PhotoCleanupService {
                 return false;
             }
             
-            Path photoPath = Paths.get(photo.getPhotoPath());
+            Path photoPath = Paths.get(photo.getPhotoPath()).toAbsolutePath();
             if (Files.exists(photoPath)) {
                 Files.delete(photoPath);
                 log.debug("原图删除成功: {}", photo.getPhotoPath());
@@ -148,7 +148,7 @@ public class PhotoCleanupService {
                 return false;
             }
             
-            Path compressedPath = Paths.get(photo.getCompressedPhotoPath());
+            Path compressedPath = Paths.get(photo.getCompressedPhotoPath()).toAbsolutePath();
             if (Files.exists(compressedPath)) {
                 Files.delete(compressedPath);
                 log.debug("压缩图删除成功: {}", photo.getCompressedPhotoPath());

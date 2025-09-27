@@ -238,12 +238,12 @@ public class WordDocumentService {
     private void addPhotoToDocument(XWPFDocument document, ClassPhotoDto photo) throws IOException, InvalidFormatException {
         // 优先使用压缩图，如果不存在则使用原图
         String imagePath = photo.getCompressedPhotoPath();
-        if (imagePath == null || !Files.exists(Paths.get(imagePath))) {
+        if (imagePath == null || !Files.exists(Paths.get(imagePath).toAbsolutePath())) {
             imagePath = photo.getPhotoPath();
         }
         
-        // 检查照片文件是否存在
-        Path photoPath = Paths.get(imagePath);
+        // 检查照片文件是否存在 - 确保使用绝对路径
+        Path photoPath = Paths.get(imagePath).toAbsolutePath();
         if (!Files.exists(photoPath)) {
             throw new IOException("照片文件不存在: " + imagePath);
         }

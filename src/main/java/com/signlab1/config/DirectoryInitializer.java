@@ -45,12 +45,13 @@ public class DirectoryInitializer implements CommandLineRunner {
      */
     private void createDirectoryIfNotExists(String path, String description) {
         try {
-            Path dirPath = Paths.get(path);
+            // 确保使用绝对路径
+            Path dirPath = Paths.get(path).toAbsolutePath();
             if (!Files.exists(dirPath)) {
                 Files.createDirectories(dirPath);
-                log.info("创建目录成功: {} ({})", path, description);
+                log.info("创建目录成功: {} ({})", dirPath.toString(), description);
             } else {
-                log.info("目录已存在: {} ({})", path, description);
+                log.info("目录已存在: {} ({})", dirPath.toString(), description);
             }
         } catch (Exception e) {
             log.error("创建目录失败: {} ({}) - {}", path, description, e.getMessage(), e);
@@ -70,7 +71,7 @@ public class DirectoryInitializer implements CommandLineRunner {
             String day = String.format("%02d", now.getDayOfMonth());
             
             // 创建当前日期的目录结构示例
-            String currentDatePath = String.format("%s/%s/%s", photoPath, year, month, day);
+            String currentDatePath = String.format("%s/%s/%s/%s", photoPath, year, month, day);
             createDirectoryIfNotExists(currentDatePath, "当前日期目录");
             
             // 创建示例课程目录
@@ -94,3 +95,4 @@ public class DirectoryInitializer implements CommandLineRunner {
         }
     }
 }
+

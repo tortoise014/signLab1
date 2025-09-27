@@ -158,3 +158,5 @@ public class ImageCompressionUtil {
                 COMPRESSED_WIDTH, COMPRESSED_HEIGHT, COMPRESSED_QUALITY * 100);
     }
 }
+
+
