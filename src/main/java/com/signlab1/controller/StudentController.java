@@ -227,31 +227,15 @@ public class StudentController {
     }
     
     /**
-     * 查看照片（返回照片文件）
+     * 查看照片（返回照片文件）- 公开访问
      */
     @GetMapping("/photo/{photoId}")
     public ResponseEntity<byte[]> viewPhoto(@PathVariable Long photoId) {
         try {
-            // 从SecurityContext获取当前登录学生的学号
-            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication == null) {
-                return ResponseEntity.status(401).build();
-            }
-            
-            String studentCode = authentication.getName();
-            if (studentCode == null || studentCode.isEmpty()) {
-                return ResponseEntity.status(401).build();
-            }
-            
             // 查询照片信息
             ClassPhoto photo = studentService.getClassPhotoById(photoId);
             if (photo == null) {
                 return ResponseEntity.notFound().build();
-            }
-            
-            // 验证权限（只能查看自己的照片）
-            if (!studentCode.equals(photo.getStudentUsername())) {
-                return ResponseEntity.status(403).build();
             }
             
             // 读取文件 - 确保使用绝对路径
@@ -380,6 +364,58 @@ public class StudentController {
             return ApiResponse.success(courses, "按日期查询课程成功");
         } catch (Exception e) {
             return ApiResponse.error(500, "按日期查询课程失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取正在进行的课程
+     */
+    @GetMapping("/current-courses")
+    public ResponseEntity<ApiResponse<List<CurrentCourseDto>>> getCurrentCourses() {
+        try {
+            List<CurrentCourseDto> courses = studentService.getCurrentCourses();
+            return ResponseEntity.ok(ApiResponse.success(courses));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("获取当前课程失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 获取最近的课程
+     */
+    @GetMapping("/recent-courses")
+    public ResponseEntity<ApiResponse<List<RecentCourseDto>>> getRecentCourses() {
+        try {
+            List<RecentCourseDto> courses = studentService.getRecentCourses();
+            return ResponseEntity.ok(ApiResponse.success(courses));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error("获取最近课程失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 获取最近一次签到记录的课程
+     */
+    @GetMapping("/last-attendance")
+    public ResponseEntity<ApiResponse<LastAttendanceDto>> getLastAttendanceCourse(Authentication authentication) {
+        try {
+            if (authentication == null) {
+                return ResponseEntity.ok(ApiResponse.error(401, "用户信息获取失败，请重新登录"));
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.error(401, "用户信息获取失败，请重新登录"));
+            }
+            
+            LastAttendanceDto lastAttendance = studentService.getLastAttendanceCourse(studentCode);
+            if (lastAttendance == null) {
+                return ResponseEntity.ok(ApiResponse.error(404, "暂无签到记录"));
+            }
+            
+            return ResponseEntity.ok(ApiResponse.success(lastAttendance, "获取最近签到记录成功"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(ApiResponse.error(500, "获取最近签到记录失败: " + e.getMessage()));
         }
     }
 }

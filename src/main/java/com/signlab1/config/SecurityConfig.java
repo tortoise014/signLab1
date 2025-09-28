@@ -15,7 +15,6 @@ import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.Arrays;
-import java.util.List;
 
 /**
  * Spring Security 配置
@@ -38,6 +37,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/test/**").permitAll() // 测试接口无需认证
                 .requestMatchers("/api/health/**").permitAll() // 健康检查接口无需认证
                 .requestMatchers("/api/student/bind-class").permitAll() // 学生绑定班级无需认证
+                .requestMatchers("/api/student/photo/**").permitAll() // 照片查看接口无需认证
                 .requestMatchers("/actuator/**").permitAll() // Spring Boot Actuator健康检查
                 .anyRequest().authenticated()
             )

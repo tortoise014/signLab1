@@ -440,10 +440,45 @@ public class TeacherController {
     }
     
     /**
-     * 获取老师的学生列表
+     * 获取老师的学生列表（支持过滤条件）
      */
     @GetMapping("/students")
-    public ApiResponse<List<StudentInfoDto>> getTeacherStudents() {
+    public ApiResponse<List<StudentInfoDto>> getTeacherStudents(
+            @RequestParam(value = "classCode", required = false) String classCode,
+            @RequestParam(value = "studentType", required = false) String studentType) {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
+            
+            List<StudentInfoDto> students = teacherService.getTeacherStudents(teacherUsername, classCode, studentType);
+            
+            // 统计信息
+            long classStudentCount = students.stream()
+                    .filter(s -> "CLASS_STUDENT".equals(s.getStudentType()))
+                    .count();
+            long crossClassCount = students.stream()
+                    .filter(s -> "CROSS_CLASS_ATTENDEE".equals(s.getStudentType()))
+                    .count();
+            
+            String message = String.format("获取学生列表成功，共%d名学生（本班学生：%d名，跨班签到学生：%d名）", 
+                    students.size(), classStudentCount, crossClassCount);
+            
+            return ApiResponse.success(students, message);
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取老师的学生列表（简化版，保持向后兼容）
+     */
+    @GetMapping("/students/all")
+    public ApiResponse<List<StudentInfoDto>> getAllTeacherStudents() {
         try {
             // 检查教师权限
             ApiResponse<String> permissionCheck = checkTeacherPermission();
@@ -454,9 +489,161 @@ public class TeacherController {
             String teacherUsername = permissionCheck.getData();
             
             List<StudentInfoDto> students = teacherService.getTeacherStudents(teacherUsername);
-            return ApiResponse.success(students, "获取学生列表成功");
+            
+            // 添加调试信息
+            long classStudentCount = students.stream()
+                    .filter(s -> "CLASS_STUDENT".equals(s.getStudentType()))
+                    .count();
+            long crossClassCount = students.stream()
+                    .filter(s -> "CROSS_CLASS_ATTENDEE".equals(s.getStudentType()))
+                    .count();
+            
+            String message = String.format("获取学生列表成功，共%d名学生（本班学生：%d名，跨班签到学生：%d名）", 
+                    students.size(), classStudentCount, crossClassCount);
+            
+            return ApiResponse.success(students, message);
         } catch (Exception e) {
             return ApiResponse.error(500, "获取学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取老师的学生列表（详细版，包含统计信息）
+     */
+    @GetMapping("/students/detailed")
+    public ApiResponse<TeacherStudentListDto> getTeacherStudentsDetailed(
+            @RequestParam(value = "classCode", required = false) String classCode,
+            @RequestParam(value = "studentType", required = false) String studentType) {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
+            
+            List<StudentInfoDto> students = teacherService.getTeacherStudents(teacherUsername, classCode, studentType);
+            
+            // 构建统计信息
+            TeacherStudentListDto.StudentStats stats = new TeacherStudentListDto.StudentStats();
+            stats.setTotalCount(students.size());
+            
+            long classStudentCount = students.stream()
+                    .filter(s -> "CLASS_STUDENT".equals(s.getStudentType()))
+                    .count();
+            stats.setClassStudentCount((int) classStudentCount);
+            
+            long crossClassCount = students.stream()
+                    .filter(s -> "CROSS_CLASS_ATTENDEE".equals(s.getStudentType()))
+                    .count();
+            stats.setCrossClassAttendeeCount((int) crossClassCount);
+            
+            long attendedCount = students.stream()
+                    .filter(s -> s.getAttendanceStatus() != null && s.getAttendanceStatus() > 0)
+                    .count();
+            stats.setAttendedCount((int) attendedCount);
+            
+            stats.setNotAttendedCount(students.size() - (int) attendedCount);
+            
+            // 计算本班学生签到率
+            if (classStudentCount > 0) {
+                long classAttendedCount = students.stream()
+                        .filter(s -> "CLASS_STUDENT".equals(s.getStudentType()) 
+                                && s.getAttendanceStatus() != null && s.getAttendanceStatus() > 0)
+                        .count();
+                double rate = (double) classAttendedCount / classStudentCount * 100;
+                stats.setAttendanceRate(Math.round(rate * 100.0) / 100.0);
+            } else {
+                stats.setAttendanceRate(0.0);
+            }
+            
+            // 构建响应
+            TeacherStudentListDto result = new TeacherStudentListDto();
+            result.setStudents(students);
+            result.setStats(stats);
+            
+            return ApiResponse.success(result, "获取学生列表成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取老师班级中的学生列表（仅本班学生）
+     */
+    @GetMapping("/class-students")
+    public ApiResponse<List<StudentInfoDto>> getTeacherClassStudents() {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
+            
+            List<StudentInfoDto> students = teacherService.getTeacherClassStudents(teacherUsername);
+            
+            // 统计信息
+            long attendedCount = students.stream()
+                    .filter(s -> s.getAttendanceStatus() != null && s.getAttendanceStatus() > 0)
+                    .count();
+            long notAttendedCount = students.size() - attendedCount;
+            
+            String message = String.format("获取本班学生列表成功，共%d名学生（已签到：%d名，未签到：%d名）", 
+                    students.size(), attendedCount, notAttendedCount);
+            
+            return ApiResponse.success(students, message);
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取本班学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取跨班签到学生列表（不是本班学生但已签到）
+     */
+    @GetMapping("/cross-class-attendees")
+    public ApiResponse<List<StudentInfoDto>> getCrossClassAttendeeStudents() {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
+            
+            List<StudentInfoDto> students = teacherService.getCrossClassAttendeeStudents(teacherUsername);
+            
+            String message = String.format("获取跨班签到学生列表成功，共%d名学生", students.size());
+            
+            return ApiResponse.success(students, message);
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取跨班签到学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 调试接口：获取老师学生列表的详细信息
+     */
+    @GetMapping("/students/debug")
+    public ApiResponse<String> debugTeacherStudents() {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            String teacherUsername = permissionCheck.getData();
+            
+            // 获取调试信息
+            String debugInfo = teacherService.getTeacherStudentsDebugInfo(teacherUsername);
+            
+            return ApiResponse.success(debugInfo, "调试信息获取成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取调试信息失败: " + e.getMessage());
         }
     }
     

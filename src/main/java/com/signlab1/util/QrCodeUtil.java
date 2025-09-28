@@ -65,9 +65,9 @@ public class QrCodeUtil {
         
         // Base64编码
         String encodedContent = Base64.getEncoder().encodeToString(content.getBytes());
-        
+
         // 生成URL格式的二维码内容
-        return String.format("https://sign-lab.zphhpz.top/student/scan?qr=%s", encodedContent);
+        return String.format("https://gdutsyjx.gdut.edu.cn/signlab/student/scan?qr=%s", encodedContent);
     }
     
     /**

@@ -14,10 +14,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -230,7 +232,7 @@ public class TeacherService {
         dto.setQrImage(qrImage);
         dto.setCourseId(courseId);
         dto.setTimestamp(timestamp);
-        dto.setRemainingTime(qrCodeUtil.getRemainingTime(timestamp, 10)); // 动态计算剩余时间
+        dto.setRemainingTime(qrCodeUtil.getRemainingTime(timestamp, 30)); // 动态计算剩余时间
         
         return dto;
     }
@@ -260,7 +262,6 @@ public class TeacherService {
         attendanceQuery.eq("course_id", courseId);
         int attendedCount = attendanceRecordMapper.selectCount(attendanceQuery).intValue();
         
-        int absentCount = totalCount - attendedCount;
         double attendanceRate = totalCount > 0 ? (double) attendedCount / totalCount * 100 : 0;
         
         AttendanceStatsDto dto = new AttendanceStatsDto();
@@ -385,6 +386,185 @@ public class TeacherService {
      * 获取老师的学生列表（班级中的学生 + 签到过的学生）
      */
     public List<StudentInfoDto> getTeacherStudents(String teacherCode) {
+        return getTeacherStudents(teacherCode, null, null);
+    }
+    
+    /**
+     * 获取老师的学生列表（支持过滤条件）
+     * @param teacherCode 老师工号
+     * @param classCode 班级代码（可选，用于过滤特定班级）
+     * @param studentType 学生类型（可选：CLASS_STUDENT, CROSS_CLASS_ATTENDEE）
+     */
+    public List<StudentInfoDto> getTeacherStudents(String teacherCode, String classCode, String studentType) {
+        try {
+            // 1. 获取老师的所有课程
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("teacher_username", teacherCode);
+            if (classCode != null && !classCode.trim().isEmpty()) {
+                courseQuery.eq("class_code", classCode);
+            }
+            List<Course> courses = courseMapper.selectList(courseQuery);
+            
+            if (courses.isEmpty()) {
+                return new ArrayList<>();
+            }
+            
+            // 2. 获取这些课程对应的所有班级代码
+            Set<String> classCodes = courses.stream()
+                    .map(Course::getClassCode)
+                    .collect(Collectors.toSet());
+            
+            // 3. 获取这些班级中绑定的学生（本班学生）
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.in("class_code", classCodes);
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            // 4. 获取这些课程的所有签到学生（包括跨班签到学生）
+            List<String> courseIds = courses.stream()
+                    .map(Course::getCourseId)
+                    .collect(Collectors.toList());
+            
+            QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+            attendanceQuery.in("course_id", courseIds);
+            List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
+            
+            // 5. 性能优化：批量查询学生信息
+            Set<String> allStudentCodes = new HashSet<>();
+            relations.forEach(relation -> allStudentCodes.add(relation.getStudentUsername()));
+            attendanceRecords.forEach(record -> allStudentCodes.add(record.getStudentUsername()));
+            
+            Map<String, User> studentMap = new HashMap<>();
+            if (!allStudentCodes.isEmpty()) {
+                QueryWrapper<User> userQuery = new QueryWrapper<>();
+                userQuery.in("username", allStudentCodes);
+                List<User> users = userMapper.selectList(userQuery);
+                studentMap = users.stream()
+                        .collect(Collectors.toMap(User::getUsername, user -> user));
+            }
+            
+            // 6. 性能优化：批量查询班级信息
+            Map<String, Class> classMap = new HashMap<>();
+            if (!classCodes.isEmpty()) {
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.in("class_code", classCodes);
+                List<Class> classes = classMapper.selectList(classQuery);
+                classMap = classes.stream()
+                        .collect(Collectors.toMap(Class::getClassCode, clazz -> clazz));
+            }
+            
+            // 7. 创建课程映射
+            Map<String, Course> courseMap = courses.stream()
+                    .collect(Collectors.toMap(Course::getCourseId, course -> course));
+            
+            // 8. 构建学生信息映射
+            Map<String, StudentInfoDto> studentInfoMap = new HashMap<>();
+            
+            // 8.1 处理本班学生
+            for (StudentClassRelation relation : relations) {
+                String studentCode = relation.getStudentUsername();
+                User user = studentMap.get(studentCode);
+                Class clazz = classMap.get(relation.getClassCode());
+                
+                StudentInfoDto dto = new StudentInfoDto();
+                dto.setStudentCode(studentCode);
+                dto.setStudentName(user != null ? user.getName() : "未知学生");
+                dto.setClassCode(relation.getClassCode());
+                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                dto.setStudentType("CLASS_STUDENT");
+                
+                // 查找该学生最近的签到记录
+                AttendanceRecord recentRecord = attendanceRecords.stream()
+                        .filter(record -> record.getStudentUsername().equals(studentCode))
+                        .max(Comparator.comparing(AttendanceRecord::getAttendanceTime))
+                        .orElse(null);
+                
+                if (recentRecord != null) {
+                    Course course = courseMap.get(recentRecord.getCourseId());
+                    dto.setLastAttendanceTime(recentRecord.getAttendanceTime());
+                    dto.setAttendanceStatus(recentRecord.getAttendanceStatus());
+                    dto.setCourseId(recentRecord.getCourseId());
+                    dto.setCourseName(course != null ? course.getCourseName() : "未知课程");
+                } else {
+                    dto.setAttendanceStatus(0);
+                }
+                
+                studentInfoMap.put(studentCode, dto);
+            }
+            
+            // 8.2 处理跨班签到学生（不在本班但已签到）
+            for (AttendanceRecord record : attendanceRecords) {
+                String studentCode = record.getStudentUsername();
+                
+                // 如果这个学生不在本班学生列表中，则添加为跨班签到学生
+                if (!studentInfoMap.containsKey(studentCode)) {
+                    User user = studentMap.get(studentCode);
+                    Course course = courseMap.get(record.getCourseId());
+                    
+                    // 查询该学生自己的班级信息（不是签到课程的班级）
+                    QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+                    studentClassQuery.eq("student_username", studentCode);
+                    StudentClassRelation studentRelation = studentClassRelationMapper.selectOne(studentClassQuery);
+                    
+                    String studentClassCode = "未绑定";
+                    String studentClassName = "未绑定班级";
+                    
+                    if (studentRelation != null) {
+                        studentClassCode = studentRelation.getClassCode();
+                        // 查询学生自己的班级信息
+                        QueryWrapper<Class> studentClassInfoQuery = new QueryWrapper<>();
+                        studentClassInfoQuery.eq("class_code", studentRelation.getClassCode());
+                        Class studentClass = classMapper.selectOne(studentClassInfoQuery);
+                        if (studentClass != null) {
+                            studentClassName = studentClass.getClassName();
+                        }
+                    }
+                    
+                    StudentInfoDto dto = new StudentInfoDto();
+                    dto.setStudentCode(studentCode);
+                    dto.setStudentName(user != null ? user.getName() : "未知学生");
+                    dto.setClassCode(studentClassCode);
+                    dto.setClassName(studentClassName);
+                    dto.setStudentType("CROSS_CLASS_ATTENDEE");
+                    dto.setLastAttendanceTime(record.getAttendanceTime());
+                    dto.setAttendanceStatus(record.getAttendanceStatus());
+                    dto.setCourseId(record.getCourseId());
+                    dto.setCourseName(course != null ? course.getCourseName() : "未知课程");
+                    
+                    studentInfoMap.put(studentCode, dto);
+                }
+            }
+            
+            // 9. 应用过滤条件
+            List<StudentInfoDto> filteredStudents = studentInfoMap.values().stream()
+                    .filter(dto -> {
+                        // 按学生类型过滤
+                        if (studentType != null && !studentType.trim().isEmpty()) {
+                            return studentType.equals(dto.getStudentType());
+                        }
+                        return true;
+                    })
+                    .sorted((a, b) -> {
+                        // 按签到时间降序排列，未签到的排在后面
+                        if (a.getLastAttendanceTime() == null && b.getLastAttendanceTime() == null) {
+                            return a.getStudentName().compareTo(b.getStudentName()); // 按姓名排序
+                        }
+                        if (a.getLastAttendanceTime() == null) return 1;
+                        if (b.getLastAttendanceTime() == null) return -1;
+                        return b.getLastAttendanceTime().compareTo(a.getLastAttendanceTime());
+                    })
+                    .collect(Collectors.toList());
+            
+            return filteredStudents;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取老师班级中的学生列表（仅本班学生）
+     */
+    public List<StudentInfoDto> getTeacherClassStudents(String teacherCode) {
         try {
             // 1. 获取老师的所有课程
             QueryWrapper<Course> courseQuery = new QueryWrapper<>();
@@ -395,18 +575,45 @@ public class TeacherService {
                 return new ArrayList<>();
             }
             
-            // 2. 获取这些课程对应的所有课程代码
-            List<String> courseCodes = courses.stream()
+            // 2. 获取这些课程对应的所有班级代码
+            Set<String> classCodes = courses.stream()
                     .map(Course::getClassCode)
-                    .distinct()
-                    .collect(Collectors.toList());
+                    .collect(Collectors.toSet());
             
-            // 3. 获取这些课程中绑定的学生
+            // 3. 获取这些班级中绑定的学生（本班学生）
             QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
-            relationQuery.in("class_code", courseCodes);
+            relationQuery.in("class_code", classCodes);
             List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
             
-            // 4. 获取这些课程的所有签到学生
+            if (relations.isEmpty()) {
+                return new ArrayList<>();
+            }
+            
+            // 4. 批量查询学生信息
+            Set<String> studentCodes = relations.stream()
+                    .map(StudentClassRelation::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            Map<String, User> studentMap = new HashMap<>();
+            if (!studentCodes.isEmpty()) {
+                QueryWrapper<User> userQuery = new QueryWrapper<>();
+                userQuery.in("username", studentCodes);
+                List<User> users = userMapper.selectList(userQuery);
+                studentMap = users.stream()
+                        .collect(Collectors.toMap(User::getUsername, user -> user));
+            }
+            
+            // 5. 批量查询班级信息
+            Map<String, Class> classMap = new HashMap<>();
+            if (!classCodes.isEmpty()) {
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.in("class_code", classCodes);
+                List<Class> classes = classMapper.selectList(classQuery);
+                classMap = classes.stream()
+                        .collect(Collectors.toMap(Class::getClassCode, clazz -> clazz));
+            }
+            
+            // 6. 获取这些课程的所有签到记录（用于查找本班学生的签到情况）
             List<String> courseIds = courses.stream()
                     .map(Course::getCourseId)
                     .collect(Collectors.toList());
@@ -415,88 +622,191 @@ public class TeacherService {
             attendanceQuery.in("course_id", courseIds);
             List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
             
-            // 5. 合并两类学生（去重）
-            Set<String> studentCodes = new HashSet<>();
+            // 7. 创建课程映射
+            Map<String, Course> courseMap = courses.stream()
+                    .collect(Collectors.toMap(Course::getCourseId, course -> course));
             
-            // 添加班级中的学生
-            relations.forEach(relation -> studentCodes.add(relation.getStudentUsername()));
+            // 8. 构建本班学生信息
+            List<StudentInfoDto> result = new ArrayList<>();
             
-            // 添加签到过的学生
-            attendanceRecords.forEach(record -> studentCodes.add(record.getStudentUsername()));
+            for (StudentClassRelation relation : relations) {
+                String studentCode = relation.getStudentUsername();
+                User user = studentMap.get(studentCode);
+                Class clazz = classMap.get(relation.getClassCode());
+                
+                StudentInfoDto dto = new StudentInfoDto();
+                dto.setStudentCode(studentCode);
+                dto.setStudentName(user != null ? user.getName() : "未知学生");
+                dto.setClassCode(relation.getClassCode());
+                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
+                dto.setStudentType("CLASS_STUDENT");
+                
+                // 查找该学生最近的签到记录
+                AttendanceRecord recentRecord = attendanceRecords.stream()
+                        .filter(record -> record.getStudentUsername().equals(studentCode))
+                        .max(Comparator.comparing(AttendanceRecord::getAttendanceTime))
+                        .orElse(null);
+                
+                if (recentRecord != null) {
+                    Course course = courseMap.get(recentRecord.getCourseId());
+                    dto.setLastAttendanceTime(recentRecord.getAttendanceTime());
+                    dto.setAttendanceStatus(recentRecord.getAttendanceStatus());
+                    dto.setCourseId(recentRecord.getCourseId());
+                    dto.setCourseName(course != null ? course.getCourseName() : "未知课程");
+                } else {
+                    dto.setAttendanceStatus(0);
+                }
+                
+                result.add(dto);
+            }
             
-            // 6. 转换为DTO
-            return studentCodes.stream()
-                    .map(studentCode -> {
-                        StudentInfoDto dto = new StudentInfoDto();
-                        dto.setStudentCode(studentCode);
-                        
-                        // 获取学生信息
-                        QueryWrapper<User> userQuery = new QueryWrapper<>();
-                        userQuery.eq("username", studentCode);
-                        User user = userMapper.selectOne(userQuery);
-                        dto.setStudentName(user != null ? user.getName() : "未知学生");
-                        
-                        // 优先从班级绑定关系获取班级信息
-                        StudentClassRelation relation = relations.stream()
-                                .filter(r -> r.getStudentUsername().equals(studentCode))
-                                .findFirst()
-                                .orElse(null);
-                        
-                        if (relation != null) {
-                            dto.setClassCode(relation.getClassCode());
-                            
-                            // 从课程信息获取班级信息
-                            Course course = courses.stream()
-                                    .filter(c -> c.getClassCode().equals(relation.getClassCode()))
-                                    .findFirst()
-                                    .orElse(null);
-                            
-                            if (course != null) {
-                                // 获取班级信息
-                                QueryWrapper<Class> classQuery = new QueryWrapper<>();
-                                classQuery.eq("class_code", course.getClassCode());
-                                Class clazz = classMapper.selectOne(classQuery);
-                                dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
-                            } else {
-                                dto.setClassName("未知班级");
-                            }
-                        } else {
-                            // 如果没有班级绑定，从课程信息推断班级
-                            AttendanceRecord record = attendanceRecords.stream()
-                                    .filter(r -> r.getStudentUsername().equals(studentCode))
-                                    .findFirst()
-                                    .orElse(null);
-                            
-                            if (record != null) {
-                                Course course = courses.stream()
-                                        .filter(c -> c.getCourseId().equals(record.getCourseId()))
-                                        .findFirst()
-                                        .orElse(null);
-                                
-                                if (course != null) {
-                                    dto.setClassCode(course.getClassCode());
-                                    
-                                    // 获取班级信息
-                                    QueryWrapper<Class> classQuery = new QueryWrapper<>();
-                                    classQuery.eq("class_code", course.getClassCode());
-                                    Class clazz = classMapper.selectOne(classQuery);
-                                    dto.setClassName(clazz != null ? clazz.getClassName() : "未知班级");
-                                } else {
-                                    dto.setClassCode("未知");
-                                    dto.setClassName("未知班级");
-                                }
-                            } else {
-                                dto.setClassCode("未知");
-                                dto.setClassName("未知班级");
-                            }
-                        }
-                        
-                        return dto;
-                    })
-                    .collect(Collectors.toList());
+            // 9. 按签到时间降序排列
+            result.sort((a, b) -> {
+                if (a.getLastAttendanceTime() == null && b.getLastAttendanceTime() == null) {
+                    return a.getStudentName().compareTo(b.getStudentName());
+                }
+                if (a.getLastAttendanceTime() == null) return 1;
+                if (b.getLastAttendanceTime() == null) return -1;
+                return b.getLastAttendanceTime().compareTo(a.getLastAttendanceTime());
+            });
+            
+            return result;
             
         } catch (Exception e) {
-            throw new RuntimeException("获取学生列表失败: " + e.getMessage());
+            throw new RuntimeException("获取本班学生列表失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取跨班签到学生列表（不是本班学生但已签到）
+     */
+    public List<StudentInfoDto> getCrossClassAttendeeStudents(String teacherCode) {
+        try {
+            // 1. 获取老师的所有课程
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("teacher_username", teacherCode);
+            List<Course> courses = courseMapper.selectList(courseQuery);
+            
+            if (courses.isEmpty()) {
+                return new ArrayList<>();
+            }
+            
+            // 2. 获取这些课程对应的所有班级代码
+            Set<String> classCodes = courses.stream()
+                    .map(Course::getClassCode)
+                    .collect(Collectors.toSet());
+            
+            // 3. 获取这些班级中绑定的学生（本班学生）
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.in("class_code", classCodes);
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            // 4. 获取本班学生的学号集合
+            Set<String> classStudentCodes = relations.stream()
+                    .map(StudentClassRelation::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            // 5. 获取这些课程的所有签到记录
+            List<String> courseIds = courses.stream()
+                    .map(Course::getCourseId)
+                    .collect(Collectors.toList());
+            
+            QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+            attendanceQuery.in("course_id", courseIds);
+            List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
+            
+            // 6. 过滤出跨班签到学生（不在本班学生列表中但已签到）
+            List<AttendanceRecord> crossClassRecords = attendanceRecords.stream()
+                    .filter(record -> !classStudentCodes.contains(record.getStudentUsername()))
+                    .collect(Collectors.toList());
+            
+            if (crossClassRecords.isEmpty()) {
+                return new ArrayList<>();
+            }
+            
+            // 7. 批量查询跨班签到学生信息
+            Set<String> crossClassStudentCodes = crossClassRecords.stream()
+                    .map(AttendanceRecord::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            Map<String, User> studentMap = new HashMap<>();
+            if (!crossClassStudentCodes.isEmpty()) {
+                QueryWrapper<User> userQuery = new QueryWrapper<>();
+                userQuery.in("username", crossClassStudentCodes);
+                List<User> users = userMapper.selectList(userQuery);
+                studentMap = users.stream()
+                        .collect(Collectors.toMap(User::getUsername, user -> user));
+            }
+            
+            // 8. 批量查询班级信息（用于本班学生）
+            Map<String, Class> classMap = new HashMap<>();
+            if (!classCodes.isEmpty()) {
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.in("class_code", classCodes);
+                List<Class> classes = classMapper.selectList(classQuery);
+                classMap = classes.stream()
+                        .collect(Collectors.toMap(Class::getClassCode, clazz -> clazz));
+            }
+            
+            // 9. 创建课程映射
+            Map<String, Course> courseMap = courses.stream()
+                    .collect(Collectors.toMap(Course::getCourseId, course -> course));
+            
+            // 10. 构建跨班签到学生信息
+            List<StudentInfoDto> result = new ArrayList<>();
+            
+            for (AttendanceRecord record : crossClassRecords) {
+                String studentCode = record.getStudentUsername();
+                User user = studentMap.get(studentCode);
+                Course course = courseMap.get(record.getCourseId());
+                
+                // 查询该学生自己的班级信息（不是签到课程的班级）
+                QueryWrapper<StudentClassRelation> studentClassQuery = new QueryWrapper<>();
+                studentClassQuery.eq("student_username", studentCode);
+                StudentClassRelation studentRelation = studentClassRelationMapper.selectOne(studentClassQuery);
+                
+                String studentClassCode = "未绑定";
+                String studentClassName = "未绑定班级";
+                
+                if (studentRelation != null) {
+                    studentClassCode = studentRelation.getClassCode();
+                    // 查询学生自己的班级信息
+                    QueryWrapper<Class> studentClassInfoQuery = new QueryWrapper<>();
+                    studentClassInfoQuery.eq("class_code", studentRelation.getClassCode());
+                    Class studentClass = classMapper.selectOne(studentClassInfoQuery);
+                    if (studentClass != null) {
+                        studentClassName = studentClass.getClassName();
+                    }
+                }
+                
+                StudentInfoDto dto = new StudentInfoDto();
+                dto.setStudentCode(studentCode);
+                dto.setStudentName(user != null ? user.getName() : "未知学生");
+                dto.setClassCode(studentClassCode);
+                dto.setClassName(studentClassName);
+                dto.setStudentType("CROSS_CLASS_ATTENDEE");
+                dto.setLastAttendanceTime(record.getAttendanceTime());
+                dto.setAttendanceStatus(record.getAttendanceStatus());
+                dto.setCourseId(record.getCourseId());
+                dto.setCourseName(course != null ? course.getCourseName() : "未知课程");
+                
+                result.add(dto);
+            }
+            
+            // 11. 按签到时间降序排列
+            result.sort((a, b) -> {
+                if (a.getLastAttendanceTime() == null && b.getLastAttendanceTime() == null) {
+                    return a.getStudentName().compareTo(b.getStudentName());
+                }
+                if (a.getLastAttendanceTime() == null) return 1;
+                if (b.getLastAttendanceTime() == null) return -1;
+                return b.getLastAttendanceTime().compareTo(a.getLastAttendanceTime());
+            });
+            
+            return result;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取跨班签到学生列表失败: " + e.getMessage());
         }
     }
     
@@ -711,6 +1021,121 @@ public class TeacherService {
     }
     
     /**
+     * 获取老师学生列表的调试信息
+     */
+    public String getTeacherStudentsDebugInfo(String teacherCode) {
+        StringBuilder debug = new StringBuilder();
+        debug.append("=== 老师学生列表调试信息 ===\n");
+        debug.append("老师工号: ").append(teacherCode).append("\n\n");
+        
+        try {
+            // 1. 查询老师的课程
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("teacher_username", teacherCode);
+            List<Course> courses = courseMapper.selectList(courseQuery);
+            
+            debug.append("1. 老师课程信息:\n");
+            debug.append("   课程总数: ").append(courses.size()).append("\n");
+            for (Course course : courses) {
+                debug.append("   - 课程ID: ").append(course.getCourseId())
+                     .append(", 课程名: ").append(course.getCourseName())
+                     .append(", 班级代码: ").append(course.getClassCode())
+                     .append("\n");
+            }
+            debug.append("\n");
+            
+            if (courses.isEmpty()) {
+                debug.append("❌ 没有找到老师的课程，无法查询学生信息\n");
+                return debug.toString();
+            }
+            
+            // 2. 获取班级代码
+            Set<String> classCodes = courses.stream()
+                    .map(Course::getClassCode)
+                    .collect(Collectors.toSet());
+            
+            debug.append("2. 班级代码列表:\n");
+            for (String classCode : classCodes) {
+                debug.append("   - ").append(classCode).append("\n");
+            }
+            debug.append("\n");
+            
+            // 3. 查询班级绑定关系
+            debug.append("3. 班级绑定关系查询:\n");
+            debug.append("   查询条件: class_code IN ").append(classCodes).append("\n");
+            
+            QueryWrapper<StudentClassRelation> relationQuery = new QueryWrapper<>();
+            relationQuery.in("class_code", classCodes);
+            List<StudentClassRelation> relations = studentClassRelationMapper.selectList(relationQuery);
+            
+            debug.append("   绑定关系总数: ").append(relations.size()).append("\n");
+            for (StudentClassRelation relation : relations) {
+                debug.append("   - 学生: ").append(relation.getStudentUsername())
+                     .append(", 班级: ").append(relation.getClassCode())
+                     .append(", 绑定时间: ").append(relation.getBindTime())
+                     .append(", 是否删除: ").append(relation.getIsDeleted())
+                     .append("\n");
+            }
+            debug.append("\n");
+            
+            // 4. 查询签到记录
+            List<String> courseIds = courses.stream()
+                    .map(Course::getCourseId)
+                    .collect(Collectors.toList());
+            
+            QueryWrapper<AttendanceRecord> attendanceQuery = new QueryWrapper<>();
+            attendanceQuery.in("course_id", courseIds);
+            List<AttendanceRecord> attendanceRecords = attendanceRecordMapper.selectList(attendanceQuery);
+            
+            debug.append("4. 签到记录:\n");
+            debug.append("   签到记录总数: ").append(attendanceRecords.size()).append("\n");
+            for (AttendanceRecord record : attendanceRecords) {
+                debug.append("   - 学生: ").append(record.getStudentUsername())
+                     .append(", 课程: ").append(record.getCourseId())
+                     .append(", 签到时间: ").append(record.getAttendanceTime())
+                     .append("\n");
+            }
+            debug.append("\n");
+            
+            // 5. 分析结果
+            Set<String> classStudentCodes = relations.stream()
+                    .map(StudentClassRelation::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            Set<String> attendanceStudentCodes = attendanceRecords.stream()
+                    .map(AttendanceRecord::getStudentUsername)
+                    .collect(Collectors.toSet());
+            
+            debug.append("5. 分析结果:\n");
+            debug.append("   本班学生总数: ").append(classStudentCodes.size()).append("\n");
+            debug.append("   签到学生总数: ").append(attendanceStudentCodes.size()).append("\n");
+            
+            Set<String> crossClassStudents = new HashSet<>(attendanceStudentCodes);
+            crossClassStudents.removeAll(classStudentCodes);
+            
+            debug.append("   跨班签到学生数: ").append(crossClassStudents.size()).append("\n");
+            debug.append("   跨班签到学生列表:\n");
+            for (String studentCode : crossClassStudents) {
+                debug.append("   - ").append(studentCode).append("\n");
+            }
+            
+            if (classStudentCodes.isEmpty()) {
+                debug.append("\n❌ 警告: 没有找到本班学生绑定关系！\n");
+                debug.append("   可能原因:\n");
+                debug.append("   1. 学生还没有绑定到班级\n");
+                debug.append("   2. 班级代码不匹配\n");
+                debug.append("   3. 数据表 student_class_relations 中没有相关记录\n");
+            }
+            
+        } catch (Exception e) {
+            debug.append("❌ 查询过程中出现错误: ").append(e.getMessage()).append("\n");
+        }
+        
+        debug.append("\n=== 调试信息结束 ===");
+        return debug.toString();
+    }
+    
+    /**
      * 获取签到状态文本
      */
     private String getStatusText(Integer status) {
@@ -723,21 +1148,4 @@ public class TeacherService {
         }
     }
     
-    /**
-     * 检查是否在课程时间段内
-     */
-    private boolean isInCourseTime(String timeSlot) {
-        try {
-            String[] times = timeSlot.split("-");
-            if (times.length != 2) return false;
-            
-            LocalTime startTime = LocalTime.parse(times[0]);
-            LocalTime endTime = LocalTime.parse(times[1]);
-            LocalTime now = LocalTime.now();
-            
-            return now.isAfter(startTime) && now.isBefore(endTime);
-        } catch (Exception e) {
-            return false;
-        }
-    }
 }

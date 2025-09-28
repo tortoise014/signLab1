@@ -27,10 +27,11 @@ public class JwtUtil {
     /**
      * 生成JWT Token
      */
-    public String generateToken(String username, String role) {
+    public String generateToken(String username, String role, String name) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("role", role);
+        claims.put("name", name);
         return createToken(claims, username);
     }
     
@@ -67,6 +68,13 @@ public class JwtUtil {
     }
     
     /**
+     * 从Token中获取用户姓名
+     */
+    public String getNameFromToken(String token) {
+        return getClaimsFromToken(token).get("name", String.class);
+    }
+    
+    /**
      * 从Token中获取Claims
      */
     private Claims getClaimsFromToken(String token) {
@@ -98,13 +106,15 @@ public class JwtUtil {
      * 生成长时间有效的JWT Token（用于测试）
      * @param username 用户名
      * @param role 角色
+     * @param name 用户姓名
      * @param days 有效天数
      * @return JWT Token
      */
-    public String generateLongTermToken(String username, String role, int days) {
+    public String generateLongTermToken(String username, String role, String name, int days) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("username", username);
         claims.put("role", role);
+        claims.put("name", name);
         claims.put("isLongTerm", true); // 标记为长期token
         
         Date now = new Date();
@@ -133,6 +143,7 @@ public class JwtUtil {
             
             result.put("username", claims.getSubject());
             result.put("role", claims.get("role"));
+            result.put("name", claims.get("name"));
             result.put("isLongTerm", claims.get("isLongTerm", Boolean.class));
             result.put("issuedAt", claims.getIssuedAt());
             result.put("expiration", claims.getExpiration());

@@ -929,3 +929,7 @@ curl -X POST http://localhost:8080/api/student/attendance/scan \
 
 - **2024-09-25**: 移除学生班级绑定验证，学生可以签到任何课程
 - **2024-09-25**: 统一API响应格式为code、message、data、timestamp
+
+
+
+
