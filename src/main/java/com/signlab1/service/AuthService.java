@@ -10,6 +10,7 @@ import com.signlab1.enums.ResponseCode;
 import com.signlab1.exception.BusinessException;
 import com.signlab1.mapper.UserMapper;
 import com.signlab1.util.JwtUtil;
+import com.signlab1.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ public class AuthService {
     
     private final UserMapper userMapper;
     private final JwtUtil jwtUtil;
+    private final PasswordUtil passwordUtil;
     
     /**
      * 用户登录
@@ -48,12 +50,12 @@ public class AuthService {
             return response;
         }
         
-        // 验证密码（明文比较）
+        // 验证密码（加密比较）
         if (request.getPassword() == null || request.getPassword().trim().isEmpty()) {
             throw new BusinessException(400, "请输入密码");
         }
         
-        if (!request.getPassword().equals(user.getPassword())) {
+        if (!passwordUtil.matches(request.getPassword(), user.getPassword())) {
             throw new BusinessException(ResponseCode.PASSWORD_ERROR);
         }
         
@@ -93,8 +95,8 @@ public class AuthService {
             throw new BusinessException(ResponseCode.USER_NOT_FOUND);
         }
         
-        // 更新密码（明文保存）
-        user.setPassword(request.getPassword());
+        // 更新密码（加密保存）
+        user.setPassword(passwordUtil.encode(request.getPassword()));
         user.setPasswordSet(1);
         userMapper.updateById(user);
     }
