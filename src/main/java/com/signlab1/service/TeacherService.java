@@ -5,6 +5,7 @@ import com.signlab1.dto.*;
 import com.signlab1.entity.AttendanceRecord;
 import com.signlab1.entity.Class;
 import com.signlab1.entity.Course;
+import com.signlab1.entity.MultiClassCourse;
 import com.signlab1.entity.StudentClassRelation;
 import com.signlab1.entity.StudentDocument;
 import com.signlab1.entity.User;
@@ -36,6 +37,7 @@ public class TeacherService {
     private final StudentDocumentMapper studentDocumentMapper;
     private final StudentClassRelationMapper studentClassRelationMapper;
     private final UserMapper userMapper;
+    private final MultiClassCourseMapper multiClassCourseMapper;
     private final QrCodeUtil qrCodeUtil;
     
     public TeacherService(CourseMapper courseMapper, ClassMapper classMapper, 
@@ -43,6 +45,7 @@ public class TeacherService {
                          StudentDocumentMapper studentDocumentMapper,
                          StudentClassRelationMapper studentClassRelationMapper,
                          UserMapper userMapper,
+                         MultiClassCourseMapper multiClassCourseMapper,
                          QrCodeUtil qrCodeUtil) {
         this.courseMapper = courseMapper;
         this.classMapper = classMapper;
@@ -50,6 +53,7 @@ public class TeacherService {
         this.studentDocumentMapper = studentDocumentMapper;
         this.studentClassRelationMapper = studentClassRelationMapper;
         this.userMapper = userMapper;
+        this.multiClassCourseMapper = multiClassCourseMapper;
         this.qrCodeUtil = qrCodeUtil;
     }
     
@@ -83,7 +87,7 @@ public class TeacherService {
         try {
             QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("teacher_username", teacherCode);
-            queryWrapper.orderByDesc("course_date").orderByAsc("time_slot");
+            queryWrapper.orderByAsc("course_date").orderByAsc("time_slot");
             
             List<Course> courses = courseMapper.selectList(queryWrapper);
             List<CourseInfoDto> result = new ArrayList<>();
@@ -235,6 +239,165 @@ public class TeacherService {
         dto.setRemainingTime(qrCodeUtil.getRemainingTime(timestamp, 30)); // 动态计算剩余时间
         
         return dto;
+    }
+    
+    /**
+     * 生成通用签到二维码（支持跨班签到）
+     */
+    public AttendanceQrDto generateUniversalAttendanceQr(String courseId) {
+        // 获取课程信息
+        QueryWrapper<Course> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("course_id", courseId);
+        Course course = courseMapper.selectOne(queryWrapper);
+        
+        if (course == null) {
+            throw new RuntimeException("课程不存在");
+        }
+        
+        // 查找同一老师同一时间的其他课程
+        QueryWrapper<Course> sameTimeQuery = new QueryWrapper<>();
+        sameTimeQuery.eq("teacher_username", course.getTeacherUsername())
+                    .eq("course_date", course.getCourseDate())
+                    .eq("time_slot", course.getTimeSlot());
+        List<Course> sameTimeCourses = courseMapper.selectList(sameTimeQuery);
+        
+        // 生成通用二维码内容（使用老师信息，不限制班级）
+        long timestamp = System.currentTimeMillis() / 1000; // 秒级时间戳
+        String qrContent = qrCodeUtil.generateMultiClassAttendanceQrContent(
+            courseId, course.getTeacherUsername(), timestamp);
+        
+        // 生成通用二维码URL（用于微信扫码跳转）
+        String qrUrl = qrCodeUtil.generateMultiClassAttendanceQrUrl(
+            courseId, course.getTeacherUsername(), timestamp);
+        
+        // 生成二维码图片（使用URL格式）
+        String qrImage = qrCodeUtil.generateQrCodeBase64(qrUrl, 300, 300);
+        
+        AttendanceQrDto dto = new AttendanceQrDto();
+        dto.setQrContent(qrContent);
+        dto.setQrImage(qrImage);
+        dto.setCourseId(courseId);
+        dto.setTimestamp(timestamp);
+        dto.setRemainingTime(qrCodeUtil.getRemainingTime(timestamp, 30)); // 动态计算剩余时间
+        
+        return dto;
+    }
+    
+    /**
+     * 配置多班级课程
+     */
+    public void configureMultiClassCourse(MultiClassCourseRequest request) {
+        try {
+            // 验证课程是否存在
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("course_id", request.getCourseId());
+            Course course = courseMapper.selectOne(courseQuery);
+            
+            if (course == null) {
+                throw new RuntimeException("课程不存在");
+            }
+            
+            // 验证教师权限
+            if (!course.getTeacherUsername().equals(request.getTeacherUsername())) {
+                throw new RuntimeException("无权限配置该课程");
+            }
+            
+            // 先删除现有的多班级配置
+            QueryWrapper<MultiClassCourse> deleteQuery = new QueryWrapper<>();
+            deleteQuery.eq("course_id", request.getCourseId());
+            multiClassCourseMapper.delete(deleteQuery);
+            
+            // 添加新的多班级配置
+            for (String classCode : request.getClassCodes()) {
+                // 验证班级是否存在
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.eq("class_code", classCode);
+                Class classEntity = classMapper.selectOne(classQuery);
+                
+                if (classEntity == null) {
+                    throw new RuntimeException("班级不存在: " + classCode);
+                }
+                
+                // 创建多班级课程关联
+                MultiClassCourse multiClassCourse = new MultiClassCourse();
+                multiClassCourse.setCourseId(request.getCourseId());
+                multiClassCourse.setClassCode(classCode);
+                multiClassCourse.setTeacherUsername(request.getTeacherUsername());
+                
+                multiClassCourseMapper.insert(multiClassCourse);
+            }
+            
+        } catch (Exception e) {
+            throw new RuntimeException("配置多班级课程失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取多班级课程信息
+     */
+    public MultiClassCourseInfoDto getMultiClassCourseInfo(String courseId) {
+        try {
+            // 获取课程基本信息
+            QueryWrapper<Course> courseQuery = new QueryWrapper<>();
+            courseQuery.eq("course_id", courseId);
+            Course course = courseMapper.selectOne(courseQuery);
+            
+            if (course == null) {
+                throw new RuntimeException("课程不存在");
+            }
+            
+            MultiClassCourseInfoDto dto = new MultiClassCourseInfoDto();
+            dto.setCourseId(courseId);
+            dto.setCourseName(course.getCourseName());
+            
+            // 获取教师信息
+            QueryWrapper<User> teacherQuery = new QueryWrapper<>();
+            teacherQuery.eq("username", course.getTeacherUsername());
+            User teacher = userMapper.selectOne(teacherQuery);
+            dto.setTeacherName(teacher != null ? teacher.getName() : "未知老师");
+            
+            // 获取多班级配置
+            QueryWrapper<MultiClassCourse> multiClassQuery = new QueryWrapper<>();
+            multiClassQuery.eq("course_id", courseId);
+            List<MultiClassCourse> multiClassCourses = multiClassCourseMapper.selectList(multiClassQuery);
+            
+            dto.setIsMultiClass(!multiClassCourses.isEmpty());
+            
+            // 获取班级信息
+            List<ClassInfoDto> classInfos = new ArrayList<>();
+            for (MultiClassCourse multiClassCourse : multiClassCourses) {
+                QueryWrapper<Class> classQuery = new QueryWrapper<>();
+                classQuery.eq("class_code", multiClassCourse.getClassCode());
+                Class classEntity = classMapper.selectOne(classQuery);
+                
+                if (classEntity != null) {
+                    ClassInfoDto classInfo = new ClassInfoDto();
+                    classInfo.setClassCode(classEntity.getClassCode());
+                    classInfo.setClassName(classEntity.getClassName());
+                    classInfos.add(classInfo);
+                }
+            }
+            
+            dto.setClasses(classInfos);
+            
+            return dto;
+            
+        } catch (Exception e) {
+            throw new RuntimeException("获取多班级课程信息失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 删除多班级课程配置
+     */
+    public void deleteMultiClassCourse(String courseId) {
+        try {
+            QueryWrapper<MultiClassCourse> query = new QueryWrapper<>();
+            query.eq("course_id", courseId);
+            multiClassCourseMapper.delete(query);
+        } catch (Exception e) {
+            throw new RuntimeException("删除多班级课程配置失败: " + e.getMessage());
+        }
     }
     
     /**

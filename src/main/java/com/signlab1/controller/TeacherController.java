@@ -180,6 +180,82 @@ public class TeacherController {
     }
     
     /**
+     * 生成通用签到二维码（支持跨班签到）
+     */
+    @PostMapping("/attendance/qr/universal")
+    public ApiResponse<AttendanceQrDto> generateUniversalAttendanceQr(@RequestParam String courseId) {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            AttendanceQrDto qrDto = teacherService.generateUniversalAttendanceQr(courseId);
+            return ApiResponse.success(qrDto, "生成通用二维码成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "生成通用二维码失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 配置多班级课程
+     */
+    @PostMapping("/multi-class/configure")
+    public ApiResponse<Void> configureMultiClassCourse(@RequestBody MultiClassCourseRequest request) {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            teacherService.configureMultiClassCourse(request);
+            return ApiResponse.success(null, "配置多班级课程成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "配置多班级课程失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 获取多班级课程信息
+     */
+    @GetMapping("/multi-class/info/{courseId}")
+    public ApiResponse<MultiClassCourseInfoDto> getMultiClassCourseInfo(@PathVariable String courseId) {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            MultiClassCourseInfoDto info = teacherService.getMultiClassCourseInfo(courseId);
+            return ApiResponse.success(info, "获取多班级课程信息成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取多班级课程信息失败: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * 删除多班级课程配置
+     */
+    @DeleteMapping("/multi-class/{courseId}")
+    public ApiResponse<Void> deleteMultiClassCourse(@PathVariable String courseId) {
+        try {
+            // 检查教师权限
+            ApiResponse<String> permissionCheck = checkTeacherPermission();
+            if (!permissionCheck.isSuccess()) {
+                return ApiResponse.error(permissionCheck.getCode(), permissionCheck.getMessage());
+            }
+            
+            teacherService.deleteMultiClassCourse(courseId);
+            return ApiResponse.success(null, "删除多班级课程配置成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "删除多班级课程配置失败: " + e.getMessage());
+        }
+    }
+    
+    /**
      * 获取签到统计
      */
     @GetMapping("/attendance/stats")

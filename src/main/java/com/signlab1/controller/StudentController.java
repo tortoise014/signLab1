@@ -410,12 +410,36 @@ public class StudentController {
             
             LastAttendanceDto lastAttendance = studentService.getLastAttendanceCourse(studentCode);
             if (lastAttendance == null) {
-                return ResponseEntity.ok(ApiResponse.error(404, "暂无签到记录"));
+                return ResponseEntity.ok(ApiResponse.success(null, "暂无签到记录"));
             }
             
             return ResponseEntity.ok(ApiResponse.success(lastAttendance, "获取最近签到记录成功"));
         } catch (Exception e) {
             return ResponseEntity.ok(ApiResponse.error(500, "获取最近签到记录失败: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * 获取学生所有已签到的课程
+     */
+    @GetMapping("/attended-courses")
+    public ApiResponse<List<AttendedCourseDto>> getAttendedCourses() {
+        try {
+            // 从SecurityContext获取当前登录学生的学号
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication == null) {
+                return ApiResponse.error(401, "未登录，请先登录");
+            }
+            
+            String studentCode = authentication.getName();
+            if (studentCode == null || studentCode.isEmpty()) {
+                return ApiResponse.error(401, "用户信息获取失败，请重新登录");
+            }
+            
+            List<AttendedCourseDto> attendedCourses = studentService.getAttendedCourses(studentCode);
+            return ApiResponse.success(attendedCourses, "获取已签到课程成功");
+        } catch (Exception e) {
+            return ApiResponse.error(500, "获取已签到课程失败: " + e.getMessage());
         }
     }
 }

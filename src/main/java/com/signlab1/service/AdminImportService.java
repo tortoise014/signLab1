@@ -9,6 +9,7 @@ import com.signlab1.mapper.ClassMapper;
 import com.signlab1.mapper.CourseMapper;
 import com.signlab1.mapper.UserMapper;
 import com.signlab1.mapper.StudentClassRelationMapper;
+import com.signlab1.util.PasswordUtil;
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -41,6 +42,7 @@ public class AdminImportService {
     private final CourseMapper courseMapper;
     private final StudentClassRelationMapper studentClassRelationMapper;
     private final ScheduleParserService scheduleParserService;
+    private final PasswordUtil passwordUtil;
     
     // 用于格式化单元格值，保持原始格式
     private final DataFormatter dataFormatter = new DataFormatter();
@@ -68,7 +70,12 @@ public class AdminImportService {
                     user.setUsername(getCellValue(row.getCell(0))); // 用户名
                     user.setName(getCellValue(row.getCell(1))); // 姓名
                     user.setRole(getCellValue(row.getCell(2))); // 角色
-                    user.setPasswordSet(0); // 初始状态未设置密码
+                    
+                    // 生成默认密码并加密
+                    String defaultPassword = generateDefaultPassword();
+                    user.setPassword(passwordUtil.encode(defaultPassword));
+                    user.setPasswordSet(1); // 设置为已设置密码
+                    
                     user.setCreateTime(LocalDateTime.now());
                     user.setUpdateTime(LocalDateTime.now());
                     user.setIsDeleted(0);
@@ -247,9 +254,9 @@ public class AdminImportService {
                         newTeacher.setName(col5.isEmpty() ? "教师" + col4.trim() : col5);
                         newTeacher.setRole("teacher");
                         
-                        String password = "syjx@" + (col4.trim().length() >= 4 ? 
+                        String rawPassword = "syjx@" + (col4.trim().length() >= 4 ? 
                             col4.trim().substring(col4.trim().length() - 4) : col4.trim());
-                        newTeacher.setPassword(password);
+                        newTeacher.setPassword(passwordUtil.encode(rawPassword));
                         newTeacher.setPasswordSet(1);
                         
                         newTeacher.setCreateTime(LocalDateTime.now());
@@ -299,6 +306,16 @@ public class AdminImportService {
     private String generateVerificationCode() {
         Random random = new Random();
         return String.format("%06d", random.nextInt(1000000));
+    }
+    
+    /**
+     * 生成默认密码
+     * 格式：User + 随机6位数字，确保包含字母和数字
+     */
+    private String generateDefaultPassword() {
+        Random random = new Random();
+        int randomNumber = random.nextInt(1000000);
+        return "User" + String.format("%06d", randomNumber);
     }
     
     /**
@@ -381,9 +398,10 @@ public class AdminImportService {
                         User student = new User();
                         student.setUsername(studentCode);
                         student.setName(studentName);
-                        // 设置密码为 syjx@ + 学号后四位
-                        student.setPassword("syjx@" + (studentCode.length() >= 4 ? 
-                            studentCode.substring(studentCode.length() - 4) : studentCode));
+                        // 生成并加密密码：syjx@ + 学号后四位
+                        String rawPassword = "syjx@" + (studentCode.length() >= 4 ? 
+                            studentCode.substring(studentCode.length() - 4) : studentCode);
+                        student.setPassword(passwordUtil.encode(rawPassword));
                         student.setRole("student");
                         student.setPasswordSet(1);
                         student.setCreateTime(LocalDateTime.now());
@@ -539,18 +557,6 @@ public class AdminImportService {
                         teacherEmployeeId = teacherCode;
                     }
                     
-                    // 处理班级信息
-                    Class clazz = getOrCreateClass(className, studentCount, createdClasses);
-                    if (clazz == null) {
-                        System.err.println("第" + (i + 1) + "行班级处理失败: " + className);
-                        errorCount++;
-                        continue;
-                    }
-                    
-                    if (createdClasses.containsKey(className)) {
-                        newClassCount++;
-                    }
-                    
                     // 处理教师信息
                     User teacher = getOrCreateTeacher(teacherEmployeeId, teacherName, createdTeachers);
                     if (teacher == null) {
@@ -573,21 +579,40 @@ public class AdminImportService {
                     
                     String parsedTimeSlot = parseTimeSlot(courseDateTime);
                     
-                    // 创建课程对象
-                    Course course = new Course();
-                    course.setCourseId(generateCourseId());
-                    course.setCourseName(experimentName); // 使用实验列作为课程名称
-                    course.setTeacherUsername(teacherEmployeeId);
-                    course.setClassCode(clazz.getClassCode());
-                    course.setLocation(location);
-                    course.setCourseDate(parsedDate);
-                    course.setTimeSlot(parsedTimeSlot);
-                    course.setCreateTime(LocalDateTime.now());
-                    course.setUpdateTime(LocalDateTime.now());
-                    course.setIsDeleted(0);
-                    
-                    courses.add(course);
-                    successCount++;
+                    // 处理多班级：支持班级字段包含多个班级（用逗号分隔）
+                    String[] classNames = className.split("[,\\s]+");
+                    for (String singleClassName : classNames) {
+                        singleClassName = singleClassName.trim();
+                        if (singleClassName.isEmpty()) continue;
+                        
+                        // 处理单个班级信息
+                        Class clazz = getOrCreateClass(singleClassName, studentCount, createdClasses);
+                        if (clazz == null) {
+                            System.err.println("第" + (i + 1) + "行班级处理失败: " + singleClassName);
+                            errorCount++;
+                            continue;
+                        }
+                        
+                        if (createdClasses.containsKey(singleClassName)) {
+                            newClassCount++;
+                        }
+                        
+                        // 创建课程对象
+                        Course course = new Course();
+                        course.setCourseId(generateCourseId());
+                        course.setCourseName(experimentName); // 使用实验列作为课程名称
+                        course.setTeacherUsername(teacherEmployeeId);
+                        course.setClassCode(clazz.getClassCode());
+                        course.setLocation(location);
+                        course.setCourseDate(parsedDate);
+                        course.setTimeSlot(parsedTimeSlot);
+                        course.setCreateTime(LocalDateTime.now());
+                        course.setUpdateTime(LocalDateTime.now());
+                        course.setIsDeleted(0);
+                        
+                        courses.add(course);
+                        successCount++;
+                    }
                     
                 } catch (Exception e) {
                     System.err.println("第" + (i + 1) + "行数据处理异常: " + e.getMessage());
@@ -709,9 +734,9 @@ public class AdminImportService {
             newTeacher.setRole("teacher");
             
             // 设置密码为 syjx@ + 工号后四位
-            String password = "syjx@" + (teacherEmployeeId.length() >= 4 ? 
+            String rawPassword = "syjx@" + (teacherEmployeeId.length() >= 4 ? 
                 teacherEmployeeId.substring(teacherEmployeeId.length() - 4) : teacherEmployeeId);
-            newTeacher.setPassword(password);
+            newTeacher.setPassword(passwordUtil.encode(rawPassword));
             newTeacher.setPasswordSet(1);
             
             newTeacher.setCreateTime(LocalDateTime.now());

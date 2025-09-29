@@ -56,12 +56,39 @@ public class QrCodeUtil {
     }
     
     /**
+     * 生成多班级签到二维码内容
+     */
+    public String generateMultiClassAttendanceQrContent(String courseId, String teacherCode, Long timestamp) {
+        // 构建多班级二维码内容：课程ID|老师工号|MULTI|时间戳|随机校验码
+        String randomCode = String.valueOf(System.currentTimeMillis() % 10000);
+        String content = String.format("%s|%s|MULTI|%d|%s", courseId, teacherCode, timestamp, randomCode);
+        
+        // Base64编码
+        return Base64.getEncoder().encodeToString(content.getBytes());
+    }
+    
+    /**
      * 生成签到二维码URL（用于微信扫码跳转）
      */
     public String generateAttendanceQrUrl(String courseId, String teacherCode, String classCode, Long timestamp) {
         // 构建二维码内容：课程ID|老师工号|班级编号|时间戳|随机校验码
         String randomCode = String.valueOf(System.currentTimeMillis() % 10000);
         String content = String.format("%s|%s|%s|%d|%s", courseId, teacherCode, classCode, timestamp, randomCode);
+        
+        // Base64编码
+        String encodedContent = Base64.getEncoder().encodeToString(content.getBytes());
+
+        // 生成URL格式的二维码内容
+        return String.format("https://gdutsyjx.gdut.edu.cn/signlab/student/scan?qr=%s", encodedContent);
+    }
+    
+    /**
+     * 生成多班级签到二维码URL（用于微信扫码跳转）
+     */
+    public String generateMultiClassAttendanceQrUrl(String courseId, String teacherCode, Long timestamp) {
+        // 构建多班级二维码内容：课程ID|老师工号|MULTI|时间戳|随机校验码
+        String randomCode = String.valueOf(System.currentTimeMillis() % 10000);
+        String content = String.format("%s|%s|MULTI|%d|%s", courseId, teacherCode, timestamp, randomCode);
         
         // Base64编码
         String encodedContent = Base64.getEncoder().encodeToString(content.getBytes());
@@ -88,6 +115,9 @@ public class QrCodeUtil {
                 if (parts.length > 4) {
                     result.put("randomCode", parts[4]);
                 }
+                
+                // 判断是否为多班级二维码
+                result.put("isMultiClass", "MULTI".equals(parts[2]) ? "true" : "false");
             }
             return result;
         } catch (Exception e) {

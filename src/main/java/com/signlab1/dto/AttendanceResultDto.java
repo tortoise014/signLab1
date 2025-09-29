@@ -28,5 +28,10 @@ public class AttendanceResultDto {
      * 上课地点
      */
     private String location;
+    
+    /**
+     * 签到结果消息
+     */
+    private String message;
 }
 
